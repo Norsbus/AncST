@@ -1,0 +1,60 @@
+import os
+import pathlib
+
+code_dir = config['code_dir']
+
+work_dir = config['work_dir']
+
+root = config['root_dir']
+
+# env variable
+os.environ['TMPDIR'] = f'{root}/utils/tmp'
+
+envvars:
+    "TMPDIR"
+
+with open(f"{work_dir}/params","r") as f:
+    line = f.read()
+    params = line.split()
+    ws_anchor_making = params[6]
+
+# organisms to comput for
+orgs = []
+with open(f"{work_dir}/orgs","r") as f:
+    for line in f:
+        orgs.append(line.strip())
+
+dont_update = []
+with open(f"{work_dir}/dont_update","r") as f:
+    for line in f:
+        dont_update.append(line.strip())
+
+orgs_tuples = []
+
+for i,org1 in enumerate(orgs):
+    for org2 in orgs[i+1:]:
+        # ONLY REALLY NECESSARY IF COMPARED FILES MESSED UP OR YOU REALLY DONT WANT TO COMPARE THE TWO ORGS. usually if compared files are fine its good to compare anyway cos then its windows which have not been compared)
+        #if org1 in dont_update and org2 in dont_update:
+        #    continue
+        orgs_tuple = org1 + '---' + org2
+        orgs_tuples.append(orgs_tuple)
+
+# snakerules
+rule all:
+	input:
+            expand(f"{work_dir}/touch/update_compared_done_{{orgs_tuple}}",orgs_tuple=orgs_tuples)
+
+rule update_compared:
+     output:
+            f"{work_dir}/touch/update_compared_done_{{orgs_tuple}}"
+     conda:
+            "snakemake"
+     log: 
+            err = f"{work_dir}/logs/update_compared/{{orgs_tuple}}_err",
+            out = f"{work_dir}/logs/update_compared/{{orgs_tuple}}_out"
+     resources:
+            mem_mb=32000
+     conda:
+            "snakemake"
+     shell:
+            f'{code_dir}/update_compared_full.py {{wildcards.orgs_tuple}} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/update_compared_done_{{wildcards.orgs_tuple}}'

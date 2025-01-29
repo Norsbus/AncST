@@ -1,0 +1,55 @@
+- there are some packages required...errors will tell you which
+are missing,just try to install them one by one
+e.g. for python you need Biopython and pygenomeviz
+e.g. you need the blast command line tools
+
+- alternatively you can use conda and the requirements.txt file
+which includes many redundant packages tho
+e.g.: conda create --name <env> --file requirements.txt
+
+
+# names of stuff #
+
+- species/organisms are given simple names like {number}org
+e.g., 1org as are there respective chromosomes/scaffolds/contigs
+like {number}orgchr{number}, e.g. 1orgchr1. this is to avoid
+format issues for the downstream program. 
+the correspondence of these names with the actual species names 
+is given in utils/mapping. this file is also used to construct 
+a python dictionary in multiple scripts which can also be used
+to see the correspondence (see e.g. custom/draw_synteny.py).
+furthermore, there is a script "replace_name" in utils/ which
+will take a txt file as the first argument and replace all
+occurences of the fake names with the original names and write
+it to a file whose name/path should be given as the second
+argument
+
+
+# workflow #
+
+suggested workflow genome-wise analysis:
+
+- run MCScanX and/or i-ADHRoE as described in the folders
+- it takes the anchors to execute these programs which can
+give a good overview of global, genome-wide correspondences
+between the genomes
+
+suggested workflow to find orthologs:
+
+either:
+1.1 create a file "coords" in this directory with the following format:
+genomes<tab>chromosome<tab>start<tab>end<tab>
+- if runs of dialign (https://dialign.gobics.de/) or Smore
+(https://github.com/AnneHoffmann/Smore) are planned, its best to
+ensure that the genome name corresponds to to a file {genome}.fasta
+(the genome file in fasta format) which is needed to run these
+programs with the custom anchors, see READMEs in Smore/ and dialign/
+- the coordinates should be in forward direction (end > start)
+- the strand is "forward" or "reverse"
+or:
+1.2 or go to utils and follow README_utils to create coords
+from a protein query file
+
+then:
+2. go to the custom folder and follow README_custom
+3. go to the MCSCanX folder and follow README_MCScanX

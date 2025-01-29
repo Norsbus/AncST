@@ -1,0 +1,117 @@
+import os
+import pathlib
+
+code_dir = config['code_dir']
+
+work_dir = config['work_dir']
+
+root = config['root_dir']
+
+# env variable
+os.environ['TMPDIR'] = f'{root}/utils/tmp'
+
+envvars:
+    "TMPDIR",
+
+with open(f"{work_dir}/params","r") as f:
+    line = f.read()
+    params = line.split()
+    K,E,L,I,P = params[:5]
+
+
+dont_update = []
+with open(f"{work_dir}/dont_update","r") as f:
+    for line in f:
+        dont_update.append(line.strip())
+
+# organisms to comput for
+orgs = []
+with open(f"{work_dir}/compute_anchors_for","r") as f:
+    for line in f:
+        if line.strip() not in dont_update:
+            orgs.append(line.strip())
+
+# snakerules
+rule all:
+	input:
+            expand(f"{work_dir}/touch/split_done_{{organism}}",organism=orgs)
+
+#rule genmap_index:
+#    input: 
+#            f"{root}/utils/genomes/{{organism}}.fasta"
+#    output: 
+#            f"{root}/utils/genmap_indices/{{organism}}/index.ids.limits"
+#    threads:
+#            12
+#    resources:
+#            cpus_per_task=12
+#    conda:
+#            "snakemake"
+#    log: 
+#            err = f"{work_dir}/logs/index/{{organism}}.err",
+#            out = f"{work_dir}/logs/index/{{organism}}.out"
+#    shell: 
+#            f'genmap index -F "{root}/utils/genomes/{{wildcards.organism}}.fasta" -I "{root}/utils/genmap_indices/{{wildcards.organism}}" 1> {{log.out}} 2> {{log.err}}'
+
+
+rule genmap_map:
+#    input: 
+#            f"{root}/utils/genmap_indices/{{organism}}/index.ids.limits"
+#    output: 
+#            f"{root}/utils/genmap_out/{{organism}}/{K}_{E}.freq16"
+#    params:
+#            k = K,
+#            e = E
+#    resources:
+#            cpus_per_task=12
+#    conda:
+#            "snakemake"
+#    log: 
+#            err = f"{work_dir}/logs/map/{{organism}}.err",
+#            out = f"{work_dir}/logs/map/{{organism}}.out"
+#    shell: 
+#            f'genmap map -fl -K {{params.k}} -E {{params.e}} -I {root}/utils/genmap_indices/{{wildcards.organism}} -O {root}/utils/genmap_out/{{wildcards.organism}}/{{params.k}}_{{params.e}} -r 1> {{log.out}} 2> {{log.err}}'
+
+rule filter_windows:
+    input: 
+            f"{root}/utils/genmap_out/{{organism}}/{K}_{E}.freq16"
+    log: 
+            err = f"{work_dir}/logs/filter/{{organism}}.err",
+            out = f"{work_dir}/logs/filter/{{organism}}.out"
+    output: 
+            f"{work_dir}/windows_low_kmers_indices/{{organism}}",
+            f"{work_dir}/windows_low_kmers_fastas/{{organism}}.fasta",
+            f"{work_dir}/windows_low_kmers_fastas_rev/{{organism}}.fasta"
+    params:
+            k = K,
+            e = E,
+            l = L,
+            i = I,
+            p = P
+    benchmark:
+            f"{work_dir}/log/benchmarks/{{organism}}.filter.benchmark.txt"
+    resources:
+            runtime="20:00:00",
+            cpus_per_task=1,
+            mem_mb=64000
+    threads:
+            1
+    conda:
+            "snakemake"
+    shell: 
+            f'{code_dir}/filter_windows_and_write_bib.py {{wildcards.organism}} {root}/utils/genmap_out/{{wildcards.organism}}/{K}_{E}.freq16 {work_dir}/windows_low_kmers_indices/{{wildcards.organism}} {{threads}} {{params.k}} {{params.e}} {{params.l}} {{params.i}} {{params.p}} 1> {{log.out}} 2> {{log.err}} {work_dir}'
+
+rule split_fastas:
+    input:
+            forw = f"{work_dir}/windows_low_kmers_fastas/{{organism}}.fasta",
+            reve = f"{work_dir}/windows_low_kmers_fastas_rev/{{organism}}.fasta"
+    output:
+            f"{work_dir}/touch/split_done_{{organism}}"
+    resources:
+            runtime="00:20:00"
+    group:
+            "initial_split"
+    conda:
+            "snakemake"
+    shell:
+            f'fasta-splitter --part-size 1000000 --out-dir {work_dir}/split_out_forward/{{wildcards.organism}} {work_dir}/windows_low_kmers_fastas/{{wildcards.organism}}.fasta && fasta-splitter --part-size 1000000 --out-dir {work_dir}/split_out_reverse/{{wildcards.organism}} {work_dir}/windows_low_kmers_fastas_rev/{{wildcards.organism}}.fasta && touch {work_dir}/touch/split_done_{{wildcards.organism}}'

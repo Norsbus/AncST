@@ -1,0 +1,4 @@
+{
+    "directories"   : ["gff","homology","slurm_log","slurm_job_scripts","touch","compressed_maps","smore_anchors","out","compressed_maps_multis_to_one"]
+}
+

@@ -1,0 +1,45 @@
+import os
+import pathlib
+
+code_dir = config['code_dir']
+
+work_dir = config['work_dir']
+
+root = config['root_dir']
+
+# env variable
+os.environ['TMPDIR'] = f'{root}/utils/tmp'
+
+envvars:
+    "TMPDIR"
+
+with open(f"{work_dir}/params","r") as f:
+    line = f.read()
+    params = line.split()
+    ws_anchor_making = params[6]
+
+# organisms to comput for
+orgs = []
+with open(f"{work_dir}/orgs","r") as f:
+    for line in f:
+        orgs.append(line.strip())
+
+# snakerules
+rule all:
+	input:
+            expand(f"{work_dir}/touch/update_compared_done_{{org}}",org=orgs)
+
+rule update_compared:
+     output:
+            f"{work_dir}/touch/update_compared_done_{{org}}"
+     conda:
+            "snakemake"
+     log: 
+            err = f"{work_dir}/logs/update_compared/{{org}}_err",
+            out = f"{work_dir}/logs/update_compared/{{org}}_out"
+     resources:
+            mem_mb=32000
+     conda:
+            "snakemake"
+     shell:
+            f'{code_dir}/update_compared.py {{wildcards.org}} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/update_compared_done_{{wildcards.org}}'

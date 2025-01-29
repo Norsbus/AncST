@@ -1,0 +1,17 @@
+- make sure there is a coords file in the root directory (.. from here)
+
+- run draw_synteny with an integer as the first argument,
+for example: ./draw_synteny.py 50000
+
+- the number is the number of nucleotides up- and downstream
+of the coordinates in coords considered for synteny analysis
+
+- thus draw_synteny will look 50000 nucleotides upstream and
+downstream of the coordinates in coords and check if there are
+any anchors in that region shared between the genomes/coordinates/elements
+
+- in clusters/{number} there are txt files with a description of the clusters
+of elements found and in images/{number} there are png and svg files with
+the images of the clusters
+
+- a cluster is a set of elements which share synteny anchors

@@ -1,0 +1,14 @@
+1. make sure you have an executable of SMORE (https://github.com/AnneHoffmann/Smore)
+2. make sure you have the genetic elements that interest you in ../coords (see ../utils/README_utils)
+2. run ./make_smore_genes_and_prep_folder.py with the path to the genomes of the genomes defined
+in ../coords as the first argument (the genomes have to be accesible as {name_from_coords}.fasta)
+- there will be input files for the Smore tool command toast in the prep folder
+3. make sure you have a phylogenetic tree including all organisms with genetic elements in ../coords
+in newick format in a file called newick.tre
+4. run smore toast 
+- e.g. ./smore toast --out out --prep prep --newick newick.tre --strucsim -1 --seqsim -1
+- if you made sure that the genetic elements of interest are all somewhat related seqsim -1
+avoids that Smore checks for sequence similarity again, see their manual
+- strucsum -1 ensures that the secondary structure (e.g. for RNAs) is ignored. you cannot use
+this option with the input generated here
+- see smore manual for further info and how to interpret output in out/

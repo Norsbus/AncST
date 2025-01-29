@@ -1,0 +1,22 @@
+1. put a protein or nucleotide sequence that you want to find orthologues for in a fasta file
+2. put a list of all organisms to search for homologs in a file named "orgs". one organism per line
+3. the genomes for the organisms in orgs have to be accessible in a path where they are named:
+{name_which_is_in_orgs}.fasta
+-> e.g.:
+
+orgs:
+dmel
+human
+
+genomes accessible somewhere:
+dmel.fasta
+human.fasta
+
+3. make sure the clasp.x executable in this folder can actually be run. otherwise compile for your machine
+see http://legacy.bioinf.uni-leipzig.de/Software/clasp/
+5. run find_pot_homologs with protein.fasta/nucleotides.fasta as the first and the path to the genomes as the second argument
+and specifiy as the third argument if its a protein (prot) or nucleotide (nucl) sequence
+-> ./find_pot_homologs.py protein.fasta path/to/genomes/ prot
+
+6. there will be a file coords in the root folder (.. from here) with the chained hits that can be used
+for further analysis (e.g. in ../MCScanX or ../custom)

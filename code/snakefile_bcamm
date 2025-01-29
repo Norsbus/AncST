@@ -1,0 +1,72 @@
+import os
+import pathlib
+
+code_dir = config['code_dir']
+
+work_dir = config['work_dir']
+
+root = config['root_dir']
+
+# env variable
+os.environ['TMPDIR'] = f'{root}/utils/tmp'
+
+envvars:
+    "TMPDIR"
+
+with open(f"{work_dir}/params","r") as f:
+    line = f.read()
+    params = line.split()
+    ws_anchor_making = params[6]
+
+# organisms to comput for
+orgs = []
+with open(f"{work_dir}/orgs","r") as f:
+    for line in f:
+        orgs.append(line.strip())
+
+orgs_tuples = []
+files = []
+
+for i,org1 in enumerate(orgs):
+    for org2 in orgs[i+1:]:
+        orgs_tuple = org1 + '---' + org2
+        chunks = [name.split('forward.')[1] for name in os.listdir(f'{work_dir}/sequences_to_compare/{org2}/forward_split')]
+        for f in chunks:
+            orgs_tuples.append(orgs_tuple)
+            files.append(f)
+
+
+# snakerules
+rule all:
+	input:
+            expand(f"{work_dir}/touch/{{orgs_tuple}}_parse_bcamm_done_{{file}}",zip,orgs_tuple=orgs_tuples,file=files),
+
+rule blast_and_clasp_iteratively:
+     output:
+            f"{work_dir}/clasp_out_forward/{{orgs_tuple}}/{{file}}_awk",
+            f"{work_dir}/clasp_out_reverse/{{orgs_tuple}}/{{file}}_awk"
+     conda:
+            "snakemake"
+     params:
+            ws_anchor_making = ws_anchor_making
+     log: 
+            err = f"{work_dir}/logs/bcamm/{{orgs_tuple}}/{{file}}_err",
+            out = f"{work_dir}/logs/bcamm/{{orgs_tuple}}/{{file}}_out"
+     shell:
+            f'{code_dir}/bcamm.py {{wildcards.orgs_tuple}} {{wildcards.file}} {{params.ws_anchor_making}} 1> {{log.out}} 2> {{log.err}} {work_dir} && awk \'{{{{ if ($1 != "#" && $8>40) print }}}}\' {work_dir}/clasp_out_forward/{{wildcards.orgs_tuple}}/{{wildcards.file}} > {work_dir}/clasp_out_forward/{{wildcards.orgs_tuple}}/{{wildcards.file}}_awk && awk \'{{{{ if ($1 != "#" && $8>40) print }}}}\' {work_dir}/clasp_out_reverse/{{wildcards.orgs_tuple}}/{{wildcards.file}} > {work_dir}/clasp_out_reverse/{{wildcards.orgs_tuple}}/{{wildcards.file}}_awk'
+
+rule parse:
+     input:
+            f"{work_dir}/clasp_out_forward/{{orgs_tuple}}/{{file}}_awk",
+            f"{work_dir}/clasp_out_reverse/{{orgs_tuple}}/{{file}}_awk"
+     output:
+            f"{work_dir}/touch/{{orgs_tuple}}_parse_bcamm_done_{{file}}"
+     conda:
+            "snakemake"
+     params:
+            ws_anchor_making = ws_anchor_making
+     log: 
+            err = f"{work_dir}/logs/parse_bcamm/{{orgs_tuple}}/{{file}}_err",
+            out = f"{work_dir}/logs/parse_bcamm/{{orgs_tuple}}/{{file}}_out"
+     shell:
+            f'{code_dir}/parse_bcamm.py {{wildcards.orgs_tuple}} {{wildcards.file}} {{params.ws_anchor_making}} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/{{wildcards.orgs_tuple}}_parse_bcamm_done_{{wildcards.file}}'

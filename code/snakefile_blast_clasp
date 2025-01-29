@@ -1,0 +1,50 @@
+import os
+import pathlib
+
+code_dir = config['code_dir']
+
+work_dir = config['work_dir']
+
+root = config['root_dir']
+
+# env variable
+os.environ['TMPDIR'] = f'{root}/utils/tmp'
+
+envvars:
+    "TMPDIR"
+
+with open(f"{work_dir}/params","r") as f:
+    line = f.read()
+    params = line.split()
+    K,E,L,I,P = params[:5]
+    ws_anchor_making = params[6]
+
+# organisms to comput for
+orgs = []
+with open(f"{work_dir}/orgs","r") as f:
+    for line in f:
+        orgs.append(line.strip())
+
+files = []
+for org in orgs:
+    files += [name for name in os.listdir(f'{work_dir}/split_out_forward/{org}')]
+
+# snakerules
+rule all:
+	input:
+            expand(f"{work_dir}/touch/blast_clasp_done_{{file}}",file = files)
+
+rule blast_and_clasp_iteratively:
+    log: 
+            err = f"{work_dir}/logs/first_self/{{file}}_err",
+            out = f"{work_dir}/logs/first_self/{{file}}_out"
+    output:
+            f"{work_dir}/touch/blast_clasp_done_{{file}}"
+    benchmark:
+            f"{work_dir}/benchmarks/blast_clasp_{{file}}.benchmark.txt"
+    conda:
+            "snakemake"
+    params:
+            ws_anchor_making = ws_anchor_making
+    shell:
+            f'{code_dir}/self-blast-clasp.py {{wildcards.file}} {{params.ws_anchor_making}} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/blast_clasp_done_{{wildcards.file}}'

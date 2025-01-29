@@ -1,0 +1,83 @@
+import os
+import pathlib
+
+code_dir = config['code_dir']
+
+work_dir = config['work_dir']
+
+root = config['root_dir']
+
+# env variable
+os.environ['TMPDIR'] = f'{root}/utils/tmp'
+
+envvars:
+    "TMPDIR"
+
+with open(f"{work_dir}/params","r") as f:
+    line = f.read()
+    params = line.split()
+    K,E,L,I,P = params[:5]
+
+dont_update = []
+with open(f"{work_dir}/dont_update","r") as f:
+    for line in f:
+        dont_update.append(line.strip())
+
+# organisms to comput for
+orgs = []
+with open(f"{work_dir}/orgs","r") as f:
+    for line in f:
+        if line.strip() not in dont_update:
+            orgs.append(line.strip())
+# snakerules
+rule all:
+	input:
+            expand(f"{work_dir}/touch/update_aligned_1_done_{{organism}}",organism=orgs),
+            expand(f"{work_dir}/touch/update_aligned_2_done_{{organism}}",organism=orgs),
+            expand(f"{work_dir}/touch/update_anchors_done_{{organism}}",organism=orgs)
+
+
+rule update_aligned_1_collect_matches_to_del:
+    output: 
+            f"{work_dir}/touch/update_aligned_1_done_{{organism}}",
+    conda:
+            "snakemake"
+    resources:
+            mem_mb=32000
+    conda:
+            "snakemake"
+    log: 
+            err = f"{work_dir}/logs/update_aligned_1/{{organism}}.err",
+            out = f"{work_dir}/logs/update_aligned_1/{{organism}}.out"
+    shell: 
+            f'{code_dir}/delete_old_candidates_and_get_matches_to_del.py {{wildcards.organism}} {work_dir} && touch {work_dir}/touch/update_aligned_1_done_{{wildcards.organism}}'
+
+rule update_aligned_2_update_maps:
+    input: 
+            expand(f"{work_dir}/touch/update_aligned_1_done_{{organism}}",organism=orgs),
+    output: 
+            f"{work_dir}/touch/update_aligned_2_done_{{organism}}",
+    conda:
+            "snakemake"
+    resources:
+            mem_mb=32000
+    log: 
+            err = f"{work_dir}/logs/update_aligned_2/{{organism}}.err",
+            out = f"{work_dir}/logs/update_aligned_2/{{organism}}.out"
+    shell: 
+            f'{code_dir}/update_aligned_map.py {{wildcards.organism}} {work_dir} && touch {work_dir}/touch/update_aligned_2_done_{{wildcards.organism}}'
+
+rule update_anchors:
+    input:
+            f"{work_dir}/touch/update_aligned_2_done_{{organism}}",
+    output: 
+            f"{work_dir}/touch/update_anchors_done_{{organism}}",
+    log: 
+            err = f"{work_dir}/logs/update_anchors/{{organism}}.err",
+            out = f"{work_dir}/logs/update_anchors/{{organism}}.out"
+    resources:
+            mem_mb=32000
+    conda:
+            "snakemake"
+    shell: 
+            f'{code_dir}/update_anchor_candidates.py {{wildcards.organism}} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/update_anchors_done_{{wildcards.organism}}'

@@ -1,0 +1,7 @@
+1. make sure you have a i-adhore executable
+2. the files adhore_config, adhore_families.table and adhore_gene_lists contain
+everything to run i-adhore, e.g. ./i-adhore adhore_config
+- it will run i-ADHoRe on the whole genomes with the paramteres defined in
+adhore_config (see their manual to change the parameters acccording to your
+needs. their is a adhore_pairwise.table file to run without the setting 
+table_type=family)

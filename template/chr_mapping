@@ -1,0 +1,12 @@
+DM_1-3_516_R44_potato_genome_assembly.v6.1_Solanum_tuberosum;chr07;chr12
+GCA_009887355.1_ASM988735v1_genomic_Solanum_pinnatisectum;CP047562.1 Solanum pinnatisectum cultivar CGN17745 chromosome 7;CP047558.1 Solanum pinnatisectum cultivar CGN17745 chromosome 12
+GCA_018258275.1_ASM1825827v1_genomic_Solanum_commersonii;CM031112.1 Solanum commersonii isolate LZ3.2 chromosome 7, whole genome shotgun sequence;CM031117.1 Solanum commersonii isolate LZ3.2 chromosome 12, whole genome shotgun sequence
+GCA_019186545.1_ASM1918654v1_genomic_Solanum_stenotomum;CM032850.1 Solanum stenotomum isolate F172 chromosome 9, whole genome shotgun sequence;CM032853.1 Solanum stenotomum isolate F172 chromosome 12, whole genome shotgun sequence
+GCA_027789145.1_ASM2778914v1_genomic_Solanum_arcanum;CM050939.1 Solanum arcanum cultivar LA2157 chromosome 7, whole genome shotgun sequence;CM050944.1 Solanum arcanum cultivar LA2157 chromosome 12, whole genome shotgun sequence
+GCA_029948455.1_IEDA_Sros_1.0_genomic_Solanum_rostratum;CM057051.1 Solanum rostratum isolate YZ_2023a chromosome 7, whole genome shotgun sequence;CM057056.1 Solanum rostratum isolate YZ_2023a chromosome 12, whole genome shotgun sequence
+GCA_030463325.1_ASM3046332v1_genomic_Solanum_americanum;CM059885.1 Solanum americanum cultivar SP2273 isolate SP2273 chromosome 7, whole genome shotgun sequence;CM059890.1 Solanum americanum cultivar SP2273 isolate SP2273 chromosome 12, whole genome shotgun sequence
+GCA_031230405.1_ASM3123040v1_genomic_Solanum_verrucosum;CP133618.1 Solanum verrucosum cultivar 11H23 chromosome 7;CP133623.1 Solanum verrucosum cultivar 11H23 chromosome 12
+GCA_947179165.2_daSolDulc1.2_genomic_Solanum_dulcamara;OX359258.1 Solanum dulcamara genome assembly, chromosome: 7;OX359263.1 Solanum dulcamara genome assembly, chromosome: 12
+GWHBKBV00000000.genome_Solanum_macrocarpon;GWHBKBV00000007    OriSeqID=Chr_7  Len=103665500;GWHBKBV00000012    OriSeqID=Chr_12 Len=83688358
+GWHBKBY00000000.genome_Solanum_ochranthum;GWHBKBY00000007    OriSeqID=Chr_7  Len=74796301;GWHBKBY00000012    OriSeqID=Chr_12 Len=72900323
+GWHCAXF00000000.genome_Solanum_torvum;GWHCAXF00000004        OriSeqID=Chr_4  Len=111136906;GWHCAXF00000012    OriSeqID=Chr_12 Len=86652962

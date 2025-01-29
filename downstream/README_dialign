@@ -1,0 +1,7 @@
+1. run ./make_anc.py with a number of how many nucleotides to take up- and downstream
+of the elements defined in ../coords and the path to the genomes of the genomes defined
+in ../coords as the first argument (the genomes have to be accesible as {name_from_coords}.fasta)
+- it will make an anchor file for dialign and write the sequences in ../coords
+in a fasta file
+2. make sure you have an executable of dialign (https://dialign.gobics.de/) 
+3. run dialign with the -anc option, e.g. ./dialign2-2 -n -anc to_align

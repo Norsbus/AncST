@@ -1,0 +1,33 @@
+# Ignore everything
+*
+template/.snakemake
+template/.snakemake/*
+
+# But not these files...
+!.gitignore
+!code/*
+!bin/*
+!code/profile/*
+!template/*.py
+!template/orgs
+!template/*.slurm
+!template/dont_update
+!template/params
+!template/chr_mapping
+!template/config.json
+!utils/*.py
+!utils/*.yml
+!utils/config.json
+!utils/util_code/*
+!utils/make_genmap/*
+!anchors/*.py
+!downstream/*.py
+!downstream/how_to_run
+!downstream/README*
+!downstream/which_dirs_to_produce_for_global
+!downstream/config.json
+!downstream/orgs
+!downstream/ref_org
+
+# ...even if they are in subdirectories
+!*/

@@ -1,0 +1,56 @@
+import os
+import pathlib
+
+code_dir = config['code_dir']
+
+work_dir = config['work_dir']
+
+root = config['root_dir']
+
+anchor_dir = root + '/anchors/'
+
+# env variable
+os.environ['TMPDIR'] = f'{root}/utils/tmp'
+
+envvars:
+    "TMPDIR"
+
+with open(f"{work_dir}/params","r") as f:
+    line = f.read()
+    params = line.split()
+    K,E,L,I,P = params[:5]
+    ws_anchor_making = params[6]
+
+# organisms to comput for
+orgs = []
+with open(f"{work_dir}/orgs","r") as f:
+    for line in f:
+        orgs.append(line.strip())
+
+# snakerules
+rule all:
+	input:
+            expand(f"{work_dir}/touch/checks_done_{{organism}}",organism=orgs),
+            expand(f"{work_dir}/touch/statistics_done_{{organism}}",organism=orgs)
+
+rule checks:
+    log: 
+            err = f"{work_dir}/logs/checks/{{organism}}_err",
+            out = f"{work_dir}/logs/checks/{{organism}}_out"
+    output:
+            f"{work_dir}/touch/checks_done_{{organism}}"
+    conda:
+            "snakemake"
+    shell:
+            f'{code_dir}/checks.py {{wildcards.organism}} {work_dir} {anchor_dir} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/checks_done_{{wildcards.organism}}'
+
+rule statistics:
+    log: 
+            err = f"{work_dir}/logs/statistics/{{organism}}_err",
+            out = f"{work_dir}/logs/statistics/{{organism}}_out"
+    output:
+            f"{work_dir}/touch/statistics_done_{{organism}}"
+    conda:
+            "snakemake"
+    shell:
+            f'{code_dir}/aligned_statistics.py {{wildcards.organism}} {work_dir} {anchor_dir} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/statistics_done_{{wildcards.organism}}'

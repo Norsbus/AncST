@@ -1,0 +1,4 @@
+{
+    "directories"   : ["genomes","genmap_out","genmap_indices","util_code","metadata_genomes","small_meta","blastdbs","tmp","make_genmap/touch"]
+}
+
