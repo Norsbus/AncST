@@ -2,7 +2,7 @@
 
 from subprocess import run
 
-with open('accesssions','r') as f:
+with open('orgs','r') as f:
     for line in f:
         if len(line.split()) > 0:
             accession = line.strip()
