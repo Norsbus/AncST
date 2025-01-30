@@ -27,7 +27,9 @@ if __name__ == "__main__":
     with open(f"orgs","r") as f:
         for line in f:
             orgs.append(line.strip())
-
+    if not os.path.exists('../../anchors'):
+        os.mkdir('../../anchors')
+        print(f'making ../../anchors dir')
     with open(f'{work_dir}/config.json','r') as f:
 
         config = json.loads(f.read())
