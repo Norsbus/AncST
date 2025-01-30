@@ -29,10 +29,10 @@ This project can roughly be subdivided into 2 main features:
 ### Executing program
 
 1. you need to prepare some things:
-* some file paths need to be added (your home, not really important, just add the parent directory of the repo; and your conda home where the envrionment you made with requirements is located (see above)). replace accordingly and run:
+* some file paths need to be added (your home, not really important, just add the parent directory of the repo; and your conda home where the envrionment you made with requirements is located (see above)). replace accordingly and run (order of commands is important):
 ```
-grep -rlZ "HOMEDIR" . | xargs -0 sed -i 's#HOMEDIR#your\_home#g'
 grep -rlZ "CONDAHOMEDIR" . | xargs -0 sed -i 's#CONDAHOMEDIR#your\_conda\_home#g'
+grep -rlZ "HOMEDIR" . | xargs -0 sed -i 's#HOMEDIR#your\_home#g'
 ```
 * put the genomes in a file called "orgs" with each genome's name on one line (without suffix fa/fasta/whatever). this file should exist in the directories utils,utils/util\_code and template
 * go to utils and execute:
