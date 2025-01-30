@@ -15,6 +15,7 @@ template/.snakemake/*
 !template/*.slurm
 !template/dont_update
 !template/params
+!template/orig_params
 !template/chr_mapping
 !template/config.json
 !utils/*.py

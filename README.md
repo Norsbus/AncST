@@ -43,7 +43,11 @@ python3 make_anchor_directories.py
 python3 get_genomes.py
 python3 extract_fastas.py
 ```
-2. now go to the template directory (make sure you have the same orgs file there) and execute:
+2. now go to the template directory (make sure you have the same orgs file there):
+* make sure you have the same orgs file there or one with a subset of the species (which you then only want to consider)
+* make a "compute\_anchors\_for" file which is the same format as orgs and defines the subset of species for which you want to compute new anchor candidates for. thus, if you already have anchors for some of the species and you do not want to compute new ones for them, leave them out of this file but include them in the orgs file, so that their anchors will be matched against the other species.
+* configure you parameters, you need: "filter\_params" and "orig\_params". "filter\_params" defines which k and e values will be used for GenMap, how big the window size and pitch are to create potential anchor candidates and which best percentile of the candidates will further be processed. thus, put these numbers separated by whitespaces per line in "filter\_params" (see the downloaded one for an example and modify). "orig\_params" includes the same 5 numbers plus two for blast word sizes and a number which is irrelevant now but better include it (again see the example and modify). the first blast word size is for searches against the own genome and the other for pairwise matching.
+* then execute:
 ```
 python3 run_complete_snakemake.py
 ```
