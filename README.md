@@ -17,9 +17,9 @@ This project can roughly be subdivided into 2 main features:
 
 ### Dependencies
 
-* only linux
+* the pipeline needs to be run on linux and is using snakemake
 * the version of the anchor making pipeline finalized and tested the most thoroughly is a version running on slurm clusters
-* there is a requirements.txt file with necessary python libraries (e.g. to be used by conda)
+* there is a requirements.txt file with necessary python libraries to be used by conda - this pipeline uses was developed in an environment called snakemake. please make one called like that and if you really cannot debug the errors of where it fails because of that specific name which should not take too long
 
 ### Installing
 
@@ -29,6 +29,11 @@ This project can roughly be subdivided into 2 main features:
 ### Executing program
 
 1. you need to prepare some things:
+* some file paths need to be added (your home, not really important, just add the parent directory of the repo; and your conda home where the envrionment you made with requirements is located (see above)). replace accordingly and run:
+```
+grep -rlZ "HOMEDIR" . | xargs -0 sed -i 's#HOMEDIR#your\_home#g'
+grep -rlZ "CONDAHOMEDIR" . | xargs -0 sed -i 's#CONDAHOMEDIR#your\_conda\_home#g'
+```
 * put the genomes in a file called "orgs" with each genome's name on one line (without suffix fa/fasta/whatever). this file should exist in the directories utils,utils/util\_code and template
 * go to utils and execute:
 ```
