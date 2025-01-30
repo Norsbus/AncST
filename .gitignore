@@ -14,7 +14,7 @@ template/.snakemake/*
 !template/orgs
 !template/*.slurm
 !template/dont_update
-!template/params
+!template/filter_params
 !template/orig_params
 !template/compute_anchors_for
 !template/chr_mapping
