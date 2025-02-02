@@ -60,7 +60,7 @@ python3 run_complete_snakemake.py
 * (if you have a big dataset and resources available contact me for multiprocessing or slurm versions of this but usually its fine to run small datasets on one core (lets say in total genomic size <= 10GB))
 * go to downstream analyses, put the same orgs file (or a subset of the species if you want to consider only those) and a "ref\_org" file which is just one of the species in orgs that will serve as the reference orientation of sequences; then execute:
 ```
-python3 run.py {anchor_directory_path==normally now just ../anchors/}
+python3 run_local.py {anchor_directory_path==normally now just ../anchors/}
 ```
 * this will create an "out" directory containing various possibilities and READMEs
 * e.g. you can run colinearity tools pretty much out of the box and draw some synteny pictures
