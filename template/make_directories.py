@@ -74,6 +74,7 @@ if __name__ == "__main__":
         for d in ['blast_out_forward','blast_out_reverse','clasp_out_forward','clasp_out_reverse','sequences_to_compare']:
             for org1,org2 in orgs_combo:
                 to_make.append(f'{d}/{org1}---{org2}')
+                to_make.append(f'{d}/{org2}---{org1}')
         remove_directories(to_make)
         make_directories(to_make)
 
