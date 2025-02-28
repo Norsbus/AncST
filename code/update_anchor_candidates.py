@@ -6,9 +6,9 @@ import pathlib,os
 from bisect import bisect_left
 from Bio.SeqRecord import SeqRecord
 from Bio import SeqIO
-import numpy as np
-from datasketch import MinHash,MinHashLSHForest
-import more_itertools
+#import numpy as np
+#from datasketch import MinHash,MinHashLSHForest
+#import more_itertools
 
 def update_anchors(bib,bib_aligned):
 
