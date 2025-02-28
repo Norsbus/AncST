@@ -13,7 +13,7 @@ def makeblastdb(org):
         run("makeblastdb -in OTHERHOMEDIRgenomes/{}.fasta -out blastdbs/{} -dbtype nucl".format(org,org).split())
 
 def blast(db,query,outfile,word_size):
-    cmd = 'blastn -db {} -query {} -strand plus -outfmt 6 -evalue 1e-3 -word_size {} -out {} -num_threads 2'.format(db,query,word_size,outfile).split()
+    cmd = 'blastn -db {} -query {} -strand plus -outfmt 6 -evalue 1e-3 -word_size {} -out {}'.format(db,query,word_size,outfile).split()
     run(cmd)
     return(0)
 
