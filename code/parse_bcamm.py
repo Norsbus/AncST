@@ -59,7 +59,7 @@ def check_score(score,org1,i_seq_org1,start1,end1,org2,i_seq_org2,start2,end2,st
             # much more significant hit somewhere else. so here criterion is that its not taken if the hits score 
             # is less than 1/10 of the max score (seen emprirically that it happens and especially for ones 
             # where there is no closest one found in own genome, hence scores of 40)
-            if threshold_1 == 20 and threshold_2 == 20 and score > max_score/10:
+            if threshold_1 == 40 and threshold_2 == 40 and score > max_score/10:
                 return(True)
             else:
                 return(False)
