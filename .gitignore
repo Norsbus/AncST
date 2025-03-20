@@ -26,6 +26,9 @@ template/.snakemake/*
 !utils/make_genmap/*
 !anchors/*.py
 !downstream/*.py
+!scaffolder/*
+!scaffolder/blossom5-v2.05.src
+!scaffolder/blossom5-v2.05.src/*
 !downstream/how_to_run
 !downstream/README*
 !downstream/which_dirs_to_produce_for_global
@@ -35,3 +38,4 @@ template/.snakemake/*
 
 # ...even if they are in subdirectories
 !*/
+!*/*
