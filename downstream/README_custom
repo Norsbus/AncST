@@ -15,3 +15,17 @@ of elements found and in images/{number} there are png and svg files with
 the images of the clusters
 
 - a cluster is a set of elements which share synteny anchors
+
+- "get_syn_regions.py": this script was developed for the following scenario:
+you have a region/genetic elements of interest in a "coords" file and want to 
+again find syntenic regions in other species. you may have additional elements 
+for those species or not. you can also have any combination of subject and 
+target species. subject species are all which have elements in the "coords" 
+file or whichever you specify (see --help) and target are either defined 
+in a file called "orgs" with a species per line (same name as for the anchor 
+calculation and therefore how the input genome was names without suffix 
+initially) or all species for which there are anchors are taken. the you can 
+specify a bunch of things, mainly margin and number of iterations (see again 
+--help) and the program will iteratively find pairwise matches of anchors 
+around the elements of interest, record new regions which are found, extract 
+those anchors and repeat
