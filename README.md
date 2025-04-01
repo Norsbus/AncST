@@ -3,6 +3,9 @@
 This project provides a pipeline and auxiliary code to find potential synteny anchor candidates from genomes and making pairwise alignments. Those can then be used by downstream programmes to study macro- and microsynteny.
 It is only a prototype version at the moment: works in principle; almost certainly needs programming skills and patience; bioinformatics experience helps.
 
+## Webserver/Precomputed Anchors
+There is an automated webserver for anchor computation as well as precomputed datasets (anchors + utility scripts) available at [http://anchored.bioinf.uni-leipzig.de:8080/](http://anchored.bioinf.uni-leipzig.de:8080/).
+
 ## Description
 
 This project can roughly be subdivided into 2 main features:
