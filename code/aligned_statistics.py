@@ -33,7 +33,7 @@ def aligned(org):
         for o,d2 in d['matches'].items():
             if o not in orgs:
                 continue
-            if d2['meta']['multiple matches out of tolerance range'] == 1 or ['matches have ambiguous matches (tolerance/chromosome out of range)'] == 1:
+            if d2['meta']['multiple matches out of tolerance range'] == 1 or d2['matches have ambiguous matches (tolerance/chromosome out of range)'] == 1:
                 continue
             for j,bib_m in d2['matches'].items():
                 scores[o].append(bib_m['match score'])
