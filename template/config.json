@@ -1,4 +1,4 @@
 {
-    "directories"   : ["blastdbs","blast_out_forward","blast_out_reverse","clasp_out_forward","clasp_out_reverse","windows_low_kmers_fastas","windows_low_kmers_fastas_rev","windows_low_kmers_indices","tmp","benchmarks","touch","split_out_forward","split_out_reverse","indices","to_del","parse_bcamm","inconsistencies","mark_in_others","checks_log","statistics_log","sequences_to_compare","slurm_logs","slurm_scripts","log","log/gm_index","log/gm_map","log/metadata","log/run_bcamm"]
+    "directories"   : ["blastdbs","blast_out_forward","blast_out_reverse","clasp_out_forward","clasp_out_reverse","windows_low_kmers_fastas","windows_low_kmers_fastas_rev","windows_low_kmers_indices","tmp","benchmarks","touch","split_out_forward","split_out_reverse","split_out_forward_add","split_out_reverse_add","indices","to_del","parse_bcamm","inconsistencies","mark_in_others","checks_log","statistics_log","sequences_to_compare","slurm_logs","slurm_scripts","log","log/gm_index","log/gm_map","log/macle_index","log/macle_Cm","log/metadata","log/run_bcamm"]
 }
 

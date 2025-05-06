@@ -57,7 +57,7 @@ if __name__ == "__main__":
             d=config["directories"]
             remove_directories(d)
             make_directories(d)
-            per_org = ['split_out_forward','split_out_reverse','blast_out_forward','blast_out_reverse','clasp_out_forward','clasp_out_reverse','indices','to_del','inconsistencies','parse_bcamm','mark_in_others','checks_log','statistics_log']
+            per_org = ['split_out_forward','split_out_reverse',"split_out_forward_add","split_out_reverse_add",'blast_out_forward','blast_out_reverse','clasp_out_forward','clasp_out_reverse','indices','to_del','inconsistencies','parse_bcamm','mark_in_others','checks_log','statistics_log']
             to_make = []
             for org in orgs:
                 for d in per_org:
@@ -92,6 +92,8 @@ if __name__ == "__main__":
             for org in orgs:
                 to_make.append(f'{d}/{org}/forward_split')
                 to_make.append(f'{d}/{org}/reverse_split')
+                to_make.append(f'{d}/{org}/forward_split_add')
+                to_make.append(f'{d}/{org}/reverse_split_add')
             #for org1,org2 in orgs_combo:
             #    to_make.append(f'{d}/{org1}---{org2}/{org1}/forward_split')
             #    to_make.append(f'{d}/{org1}---{org2}/{org1}/reverse_split')

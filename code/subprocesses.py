@@ -1,46 +1,66 @@
 #! /usr/bin/env python3
 
-from subprocess import run
+from subprocess import run,Popen,TimeoutExpired,PIPE
 from os.path import isfile
 from os import getcwd
 import os
 from Bio import SeqIO
 import pickle
+import resource
 
-def makeblastdb(org):
-    path = getcwd()
-    if not (isfile(path + "/blastdbs/{}.nin".format(org)) and isfile(path + "/blastdbs/{}.nhr".format(org)) and isfile(path + "/blastdbs/{}.nsq".format(org))):
-        run("makeblastdb -in OTHERHOMEDIRgenomes/{}.fasta -out blastdbs/{} -dbtype nucl".format(org,org).split())
+def setlimits():
 
-def blast(db,query,outfile,word_size):
+    #if suf == '' or suf == '_add':
+    #    resource.setrlimit(rsrc, (16000000000, hard))
+    #else:
+    #    resource.setrlimit(rsrc, (32000000000, hard))
+    MAX_VIRTUAL_MEMORY = 16 * 1024 * 1024 * 1024 # 16 MB
+    resource.setrlimit(resource.RLIMIT_AS, (MAX_VIRTUAL_MEMORY, resource.RLIM_INFINITY))
+
+    return 0
+
+def blast(db,query,outfile,word_size,suf):
+    if suf == '':
+        TO = 1200
+    elif suf == '_add':
+        TO = 420
+    elif suf == 'bcamm':
+        TO = 604800
     cmd = 'blastn -db {} -query {} -strand plus -outfmt 6 -evalue 1e-3 -word_size {} -out {}'.format(db,query,word_size,outfile).split()
-    run(cmd)
+    #run(cmd)
+    proc = Popen(cmd, stdout=PIPE, stderr=PIPE, preexec_fn=setlimits)
+    try:
+        outs, errs = proc.communicate(timeout=TO)
+    except TimeoutExpired:
+        print(f'blast {query} TimeoutExpired')
+        proc.kill()
+        outs, errs = proc.communicate()
+        return(1)
+    if proc.returncode != 0:
+        print(f'blast {query} probably process killed my MEM limit')
+        return(-1)
     return(0)
 
-def clasp(infile,outfile,l=0.5,e=0):
+def clasp(infile,outfile,suf,l=0.5,e=0):
+    if suf == '':
+        TO = 900
+    elif suf == '_add':
+        TO = 300
+    elif suf == 'bcamm':
+        TO = 604800
     bin_dir = '../bin'
     cmd = '{}/clasp.x -m -i {} -c 7 8 9 10 12 -C 1 2 -l {} -e {} -o {}'.format(bin_dir,infile,l,e,outfile).split()
-    run(cmd)
-    return(0)
-
-def make_metadata(org):
-    
-    path = getcwd()
-    if not isfile(path + "/../utils/metadata_genomes/{}".format(org)):
-        
-        seqs = SeqIO.parse('OTHERHOMEDIRgenomes/{}.fasta'.format(org), "fasta")
-        s = ''
-        seqids = []
-        seqlen = []
-        tot = 0
-
-        for seq in seqs:
-            s += seq.seq
-            seqids.append(seq.id)
-            tot += len(seq.seq)
-            seqlen.append(tot)
-
-        with open('../utils/metadata_genomes/{}'.format(org), 'wb') as f:
-            pickle.dump((seqids, seqlen, s), f)
-
+    print(cmd)
+    #run(cmd)
+    proc = Popen(cmd, stdout=PIPE, stderr=PIPE, preexec_fn=setlimits)
+    try:
+        outs, errs = proc.communicate(timeout=TO)
+    except TimeoutExpired:
+        print(f'clasp {infile} TimeoutExpired')
+        proc.kill()
+        outs, errs = proc.communicate()
+        return(1)
+    if proc.returncode != 0:
+        print(f'clasp {infile} probably process killed my MEM limit')
+        return(-1)
     return(0)

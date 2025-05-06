@@ -52,7 +52,7 @@ def exe():
 
     write_fastas(org,f'{work_dir}/sequences_to_compare/{org}',to_compare1,bib1)
     run(f'makeblastdb -in "{work_dir}/sequences_to_compare/{org}/forward.fasta" -out {work_dir}/blastdbs/anchor_candidates_{org}_forward -dbtype nucl',shell=True)
-    run(f'fasta-splitter --part-size 10000000 --out-dir {work_dir}/sequences_to_compare/{org}/forward_split {work_dir}/sequences_to_compare/{org}/forward.fasta && fasta-splitter --part-size 10000000 --out-dir {work_dir}/sequences_to_compare/{org}/reverse_split {work_dir}/sequences_to_compare/{org}/reverse.fasta',shell=True)
+    run(f'fasta-splitter --part-size 1000000 --out-dir {work_dir}/sequences_to_compare/{org}/forward_split {work_dir}/sequences_to_compare/{org}/forward.fasta && fasta-splitter --part-size 1000000 --out-dir {work_dir}/sequences_to_compare/{org}/reverse_split {work_dir}/sequences_to_compare/{org}/reverse.fasta',shell=True)
 
 if __name__ == "__main__":
 
