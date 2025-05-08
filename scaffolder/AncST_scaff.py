@@ -2,6 +2,7 @@
 
 from subprocess import run
 from sys import argv
+import pickle
 
 run(f'mkdir -p singles_out multi_out',shell=True)
 refs = []
@@ -13,6 +14,17 @@ for ref in refs[1:]:
     refs_list_str += f',{ref}'
 
 target = argv[1]
+
+small_meta_path = '../utils/small_meta/'
+with open(f'{small_meta_path}/{target}','rb') as f:
+    small_meta = pickle.load(f)
+contig_number_mapping = {}
+contig_number = 1
+for seqid in small_meta[0]:
+    contig_number_mapping[seqid] = str(contig_number)
+    contig_number += 1
+with open('singles_out/contig_number_mapping.pickle','wb') as f:
+    pickle.dump(contig_number_mapping,f)
 
 for ref in refs:
     run(f'./single_scaff.py {ref} {target} 1>singles_out/out_single_scaff_ref_{ref}.txt',shell = True)

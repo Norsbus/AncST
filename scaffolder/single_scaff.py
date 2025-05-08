@@ -13,17 +13,6 @@ anchors_path = '../anchors/aligned/'
 anchors_path_cand = '../anchors/candidates/'
 small_meta = {}
 
-# internally anchor maps have more cryptic names
-name_mapping = {
-    'human_chopped' : 'hg38_not_masked_c_and_r1',
-    'human_chopped_and_rearranged_0.05' : 'hg38_not_masked_c_and_r3_0.05',
-    'human_chopped_and_rearranged_0.1' : 'hg38_not_masked_c_and_r3_0.1',
-    'hg38_not_masked_c_and_r1' : 'human_chopped',
-    'hg38_not_masked_c_and_r3_0.05' : 'human_chopped_and_rearranged_0.05',
-    'hg38_not_masked_c_and_r3_0.1' : 'human_chopped_and_rearranged_0.1'
-}
-# extra maps for human_chopped
-
 target_genome = argv[2]
 orgs = [ref_genome,target_genome]
 for org in orgs:
@@ -40,7 +29,8 @@ oris_others[target_genome] = {}
 
 
 mapping_contig_chromo = {}
-contig_number_mapping = {}
+with open('singles_out/contig_number_mapping.pickle','rb') as f:
+    contig_number_mapping = pickle.load(f)
 
 if target_genome == 'human_chopped':
     ref_genome_name = ref_genome+'_vs_human_chopped'
@@ -58,12 +48,9 @@ for i in iss:
     if chromo not in orders_others[target_genome]:
         orders_others[target_genome][chromo] = []
         oris_others[target_genome][chromo] = {}
-    if name_mapping[target_genome] in anchors[i]['matches'] and anchors[i]['matches'][name_mapping[target_genome]]['meta']['multiple matches out of tolerance range'] == 0:
-        for j,match_bib in anchors[i]['matches'][name_mapping[target_genome]]['matches'].items():
+    if target_genome in anchors[i]['matches'] and anchors[i]['matches'][target_genome]['meta']['multiple matches out of tolerance range'] == 0:
+        for j,match_bib in anchors[i]['matches'][target_genome]['matches'].items():
             chromo2 = t_anchors[j]['chromosome'] 
-            if chromo2 not in contig_number_mapping:
-                contig_number = chromo2.split('contig')[1]
-                contig_number_mapping[chromo2] = contig_number
             if chromo2 not in oris_others[target_genome][chromo]:
                 oris_others[target_genome][chromo][chromo2] = []
             if chromo2 not in mapping_contig_chromo:
@@ -210,3 +197,5 @@ with open(f'singles_out/blossom_v_infile_target_{target_genome}_ref_{ref_genome}
                     head2,tail2 = tail2,head2
                 f.write(f'{tail1} {head2} 1\n')
         count += 1
+
+
