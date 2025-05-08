@@ -2,7 +2,6 @@
 
 import networkx as nx
 import pickle
-from matplotlib import pyplot as plt
 import sys
 
 target_genome = sys.argv[1]
