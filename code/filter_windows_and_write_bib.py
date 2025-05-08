@@ -773,6 +773,12 @@ if __name__ == "__main__":
 
     k,e,len_lmers,interval,percentile = int(argv[5]),int(argv[6]),int(argv[7]),int(argv[8]),int(argv[9])
 
+    with open(f'k_e_{org}') as f:
+        for line in f:
+            if 'k=' in line:
+                k = int(line.split('=')[1])
+            elif 'e=' in line:
+                e = int(line.split('=')[1])
     print(f'filtering windows with parameters: k={k}, e={e}, len_lmers={len_lmers}, interval={interval}, percentile={percentile}')
     idx = get_low_count_windows(org,infile,outfile,k,e,len_lmers,interval,percentile)
     
