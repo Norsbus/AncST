@@ -13,12 +13,12 @@ def write_scaffolds(genome,scaffolds):
         for line in f:
             if len(line.strip()) == 0:
                 continue
-            if '>Scaffold' in line:
+            if '>scaffold' in line:
                 new_genome[line.strip()] = []
                 last = line.strip()
             else:
                 new_genome[last].append((line.strip()[:-1],line.strip()[-1]))
-
+    
     records = []
     for new_scaffold,contigs in new_genome.items():
         new_seq = ''
@@ -31,7 +31,7 @@ def write_scaffolds(genome,scaffolds):
                         new_seq += str(seq.reverse_complement().seq)
                     break
             new_seq += 100*'N'
-        records.append(SeqRecord(Seq(new_seq[:-100]),id=f"{new_scaffold[1:]}"))
+        records.append(SeqRecord(Seq(new_seq[:-100]),id=f"{new_scaffold[1:]}",description=""))
     SeqIO.write(records, f'scaffolds_fastas/{genome.split("/")[-1]}2{scaffolds.split("/")[-1]}.fasta', "fasta")
 
     return(0)

@@ -150,7 +150,7 @@ with open(f'singles_out/contig_order_target_{target_genome}_ref_{ref_genome}.out
     for ref in small_meta[ref_genome][0]:
         if ref not in new_orders_others[targets[0]]:
             continue
-        f.write(f'>Scaffold_{count}\n')
+        f.write(f'>scaffold_{count}\n')
         c = new_orders_others[targets[0]][ref]
         for x in c:
             if x not in written and simple_map[x][0] == ref:

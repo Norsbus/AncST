@@ -93,7 +93,7 @@ with open(f'multi_out/scaffolds_numbers.out','w') as f:
             paths = [p for p in nx.all_simple_paths(G,ends[0],ends[1])]
             if len(paths) > 1:
                 continue
-            f.write(f'>Scaffold {count}\n')
+            f.write(f'>scaffold_{count}\n')
             taken = []
             count += 1
             last_contig = contig = 'contig'+paths[0][0]
@@ -124,7 +124,7 @@ with open(f'multi_out/scaffolds_numbers.out','w') as f:
 out2 = open(f'multi_out/scaffolds_names.out','w')
 with open(f'multi_out/scaffolds_numbers.out','r') as f:
     for line in f:
-        if '>Scaffold' in line:
+        if '>scaffold' in line:
             out2.write(line)
         elif 'contig' in line:
             name = contig_number_mapping[line.split('contig')[1].strip().split()[0].strip()]
