@@ -22,6 +22,7 @@ contig_number_mapping = {}
 contig_number = 1
 for seqid in small_meta[0]:
     contig_number_mapping[seqid] = str(contig_number)
+    contig_number_mapping[str(contig_number)] = seqid
     contig_number += 1
 with open('singles_out/contig_number_mapping.pickle','wb') as f:
     pickle.dump(contig_number_mapping,f)

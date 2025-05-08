@@ -10,6 +10,9 @@ target_genome = sys.argv[1]
 with open(f'singles_out/blossom_mapping.pickle','rb') as f:
     mapping_for_reconstruction = pickle.load(f)
 
+with open(f'singles_out/contig_number_mapping.pickle','rb') as f:
+    contig_number_mapping = pickle.load(f)
+
 original_edges = {}
 
 with open(f'singles_out/blossom_v_infile_merged.txt') as f:
@@ -78,7 +81,7 @@ while len(sc) > 0:
 count = 1
 degrees = {node:val for (node, val) in G.degree()}
 g_taken = {}
-with open(f'multi_out/scaffolds.out','w') as f:
+with open(f'multi_out/scaffolds_numbers.out','w') as f:
     for cc in sorted(nx.connected_components(G), key = len, reverse=True):
         if len(cc) < 4:
             continue
@@ -117,3 +120,16 @@ with open(f'multi_out/scaffolds.out','w') as f:
                 g_taken[gt] = 1
         else:
             continue
+
+out2 = open(f'multi_out/scaffolds_names.out','w')
+with open(f'multi_out/scaffolds_numbers.out','r') as f:
+    for line in f:
+        if '>Scaffold' in line:
+            out2.write(line)
+        elif 'contig' in line:
+            name = contig_number_mapping[line.split('contig')[1].strip().split()[0].strip()]
+            if '+' in line[-5:]:
+                out2.write(f'{name}+\n')
+            else:
+                out2.write(f'{name}-\n')
+out2.close()
