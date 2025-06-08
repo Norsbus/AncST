@@ -21,10 +21,16 @@ def write_scaffolds(genome,scaffolds):
     
     records = []
     for new_scaffold,contigs in new_genome.items():
+        print(f'writing {new_scaffold} with contigs:')
+        print(contigs)
         new_seq = ''
         for contig,ori in contigs:
+            contig = contig.strip()
+            ori = ori.strip()
+            print(f'looking for contig {contig} with ori {ori}')
             for seq in SeqIO.parse(genome,'fasta'):
                 if seq.id == contig:
+                    print(f'found contig {contig} with ori {ori}')
                     if ori == '+':
                         new_seq += str(seq.seq)
                     else:
