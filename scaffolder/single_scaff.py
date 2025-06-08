@@ -27,10 +27,19 @@ oris_others = {}
 orders_others[target_genome] = {}
 oris_others[target_genome] = {}
 
-
 mapping_contig_chromo = {}
-with open('singles_out/contig_number_mapping.pickle','rb') as f:
-    contig_number_mapping = pickle.load(f)
+if isfile('singles_out/contig_number_mapping.pickle'):
+    with open('singles_out/contig_number_mapping.pickle','rb') as f:
+        contig_number_mapping = pickle.load(f)
+else:
+    contig_number_mapping = {}
+    contig_number = 1
+    for seqid in small_meta[target_genome][0]:
+        contig_number_mapping[seqid] = str(contig_number)
+        contig_number_mapping[str(contig_number)] = seqid
+        contig_number += 1
+    with open('singles_out/contig_number_mapping.pickle','wb') as f:
+        pickle.dump(contig_number_mapping,f)
 
 if target_genome == 'human_chopped':
     ref_genome_name = ref_genome+'_vs_human_chopped'
