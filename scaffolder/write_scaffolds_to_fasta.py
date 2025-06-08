@@ -25,6 +25,8 @@ def write_scaffolds(genome,scaffolds):
         print(contigs)
         new_seq = ''
         for contig,ori in contigs:
+            if len(ori) == 0:
+                continue
             contig = contig.strip()
             ori = ori.strip()
             print(f'looking for contig {contig} with ori {ori}')
