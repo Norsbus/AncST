@@ -20,7 +20,7 @@ def thread_process(org,k_e):
 #SBATCH --error stderr_map_{org}\n\
 #SBATCH --output stdout_map_{org}\n\
 eval "$(conda shell.bash hook)"\n\
-conda activate CONDAHOMEDIR/miniconda3/envs/snakemake\n\
+conda activate /homes/biertank/karl//miniconda3/envs/snakemake\n\
 genmap map -fl -K {k} -E {e} -I {work_dir}/../utils/genmap_indices/{org} -O {work_dir}/../utils/genmap_out/{org}/{k}_{e} -r && touch touch/{org}_{k}_{e}_map_done\n\
 """
             with open('run.slurm','w') as f:

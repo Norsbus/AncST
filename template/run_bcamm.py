@@ -42,7 +42,7 @@ for org_tuple,f in zip(orgs_tuples,files):
 #SBATCH --error log/run_bcamm/{org_tuple}.{f}.global.err\n\
 #SBATCH --output log/run_bcamm/{org_tuple}.{f}.global.out\n\
 eval "$(conda shell.bash hook)"\n\
-conda activate CONDAHOMEDIR/miniconda3/envs/snakemake\n\
+conda activate /homes/biertank/karl//miniconda3/envs/snakemake\n\
 {first} && {second}"""
     with open(f'slurm_scripts/myslurm_{org}_{f}','w') as f2:
         f2.write(cmd)

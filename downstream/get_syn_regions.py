@@ -9,7 +9,7 @@ from dbscan1d.core import DBSCAN1D
 import argparse
 import networkx as nx
 import markov_clustering as mc
-from pprint import pprint
+import os
 
 def which_chromo(seqlen,seqids,i):
     seqlen = sorted(seqlen)
@@ -97,9 +97,6 @@ def get_elements_and_syntenies_of_regions(global_regions):
                                     if ident2 not in pw_syn[org][ident1][org2]:
                                         pw_syn[org][ident1][org2][ident2] = 0
                                     pw_syn[org][ident1][org2][ident2] += 1
-    print('debug start')
-    pprint(anchors_per_region)
-    print('debug end')
 
     G.add_nodes_from([f'{o}$$${x}' for o,x in pw_syn.items()])
     for org,bib in pw_syn.items():
@@ -282,9 +279,13 @@ if __name__ == "__main__":
     candidates_path = f'{anchor_path}/candidates/'
 
     orgs = []
-    with open('orgs','r') as f:
-        for line in f:
-            orgs.append(line.strip())
+    if os.path.isfile('orgs'):
+        with open('orgs','r') as f:
+            for line in f:
+                orgs.append(line.strip())
+    else:
+        orgs = os.listdir(f'{anchor_path}/aligned/')
+
     target_orgs = orgs
 
     small_meta = {}
@@ -392,6 +393,11 @@ if __name__ == "__main__":
         new_regions[org] = regions
 
     for j in range(2,no_iter+1):
+
+        if len(new_regions) == 0:
+            print(f'exiting before iteration no {j} since no new regions found')
+            break
+
         print(f'iteration no {j}')
 
         with mp.Pool(processes=no_cores) as p:
@@ -419,13 +425,8 @@ if __name__ == "__main__":
             res = p.starmap(get_new_regions_to_eval,[(org,global_regions[org],old_regions[org]) for org in list(global_regions.keys())])
        
         new_regions = {}
-        check = 0
         for org,regions in res:
             new_regions[org] = regions
-            check += len(regions)
-        if check == 0:
-            print('no new regions...breaking')
-            break
     
     with mp.Pool(processes=no_cores) as p:
         res = p.starmap(get_coords,[(query_org,target_orgs,regions,-1) for query_org,regions in global_regions.items()])
@@ -434,60 +435,14 @@ if __name__ == "__main__":
     cont_eles,pw_syn,trans_syn,pw_syn_mcl = get_elements_and_syntenies_of_regions(global_regions)
 
     bp_no = 1
-    with open(f'global_regions_chr07','wb') as f:
-        pickle.dump(global_regions,f)
-    with open(f'aux_chr07','wb') as f:
-        pickle.dump((cont_eles,pw_syn,trans_syn,pw_syn_mcl),f)
-    regions_matrix = {}
-    with open(f'syntenic_regions_succinct_chr07','w') as f:
-        for org,bib in global_regions.items():
-            for ident,t in sorted(bib.items(), key=lambda x: x[1]):
-                start,end = t
-                seqids,seqlen = small_meta[org]
-                chromo = which_chromo(seqlen,seqids,start)
-                chromo_end = which_chromo(seqlen,seqids,end)
-                if chromo_end != chromo:
-                    seqlen_chr_start = seqlen[seqids.index(chromo)]
-                    save_end = end
-                    end = seqlen_chr_start - 1
-                idx_l = seqids.index(chromo)
-                if idx_l > 0:
-                    le = seqlen[idx_l-1]
-                else:
-                    le = 0
-                len_chr = seqlen[idx_l] - le
-                start -= le
-                start = max(0,start)
-                end -= le
-                end = min(len_chr,end)
-                if chromo_end != chromo:
-                    start1 = start
-                    end1 = len_chr - 1
-                    f.write(f'{org}\t{chromo}\t{start1}\t{end1}\tPOT BP1\n')
-                    start2 = 0
-                    idx_l = seqids.index(chromo_end)
-                    if idx_l > 0:
-                        le = seqlen[idx_l-1]
-                    else:
-                        le = 0
-                    len_chr = seqlen[idx_l] - le
-                    end2 = save_end - le
-                    end2 = min(len_chr,end2)
-                    f.write(f'{org}\t{chromo_end}\t{start2}\t{end2}\tPOT BP2\n')
-                else:
-                    f.write(f'{org}\t{chromo}\t{start}\t{end}\tNO BP\n')
 
-    with open(f'syntenic_regions_verbose_chr07','w') as f:
+    with open(f'syntenic_regions','w') as f:
         for org,bib in global_regions.items():
-            regions_matrix[org] = {}
             f.write(f'==============================================================================================================\n')
             f.write(f'{org}\n')
             for ident,t in sorted(bib.items(), key=lambda x: x[1]):
-                regions_matrix[org][ident] = {}
                 start,end = t
-                elements = []
-                if org in cont_eles and ident in cont_eles[org]:
-                    elements = cont_eles[org][ident]
+                elements = cont_eles[org][ident]
                 seqids,seqlen = small_meta[org]
                 chromo = which_chromo(seqlen,seqids,start)
                 chromo_end = which_chromo(seqlen,seqids,end)
@@ -500,22 +455,16 @@ if __name__ == "__main__":
                     le = seqlen[idx_l-1]
                 else:
                     le = 0
-                len_chr = seqlen[idx_l] - le
+                len_chr = seqlen[idx_l]
                 start -= le
                 start = max(0,start)
                 end -= le
                 end = min(len_chr,end)
                 if chromo_end != chromo:
-                    if len(seqids[seqids.index(chromo):seqids.index(chromo_end)+1]) > 2:
-                        print(org,seqids[seqids.index(chromo):seqids.index(chromo_end)+1])
-                        print(seqids)
-                        print(seqlen)
-                if chromo_end != chromo:
                     elements1 = []
-                    if org in coords and chromo in coords[org]:
-                        for x in coords[org][chromo]:
-                            if x[0] >= start and x[1] <= end:
-                                elements1.append(x[-1])
+                    for x in coords[org][chromo]:
+                        if x[0] >= start and x[1] <= end:
+                            elements1.append(x[-1])
                     f.write('-----------------------------------------------------------------------------------------------------------------\n')
                     f.write(f'<<< {org}\tregion {ident}\t{chromo}\t{start}\t{end} (== end of chr) \tPOTENTIAL CHROMOSOMAL BREAKPOINT {bp_no} REGION 1 >>>\n')
                     f.write(f'\telements: {elements1}\n')
@@ -524,8 +473,6 @@ if __name__ == "__main__":
                         for org2,l in pw_syn[org][ident].items():
                             if len(l) == 0:
                                 continue
-                            if org2 not in regions_matrix[org][ident]:
-                                regions_matrix[org][ident][org2] = {}
                             l_mcl = []
                             if org in pw_syn_mcl and ident in pw_syn_mcl[org] and org2 in pw_syn_mcl[org][ident]:
                                 l_mcl = pw_syn_mcl[org][ident][org2]
@@ -536,23 +483,18 @@ if __name__ == "__main__":
                             for reg2 in l:
                                 if reg2 in l_mcl:
                                     f.write(f'\t\t\tregion {reg2} [1] \n')
-                                    regions_matrix[org][ident][org2][reg2] = 1
                                 else:
                                     f.write(f'\t\t\tregion {reg2} [0] \n')
-                                    regions_matrix[org][ident][org2][reg2] = 0
                     f.write(f'\tadditionally transitively pairwise syntenic to:\n')
                     if org in trans_syn and ident in trans_syn[org]:
                         for org2,l in trans_syn[org][ident].items():
                             if len(l) == 0:
                                 continue
-                            if org2 not in regions_matrix[org][ident]:
-                                regions_matrix[org][ident][org2] = {}
                             if len(l) > 1:
                                 f.write(f'\t\t{org2} (potential breakpoints as multiple regions match - likely just artificial partition into multiple regions due to actual sequence insertions/deletions or program parameter/anchor availability/assembly artefacts):\n')
                             else:
                                 f.write(f'\t\t{org2}:\n')
                             for reg2 in l:
-                                regions_matrix[org][ident][org2][reg2] = 't'
                                 f.write(f'\t\t\tregion {reg2}\n')
                     f.write('-----------------------------------------------------------------------------------------------------------------\n')
                     start = 1
@@ -562,14 +504,13 @@ if __name__ == "__main__":
                         le = seqlen[idx_l-1]
                     else:
                         le = 0
-                    len_chr = seqlen[idx_l] - le
+                    len_chr = seqlen[idx_l]
                     end -= le
                     end = min(len_chr,end)
                     elements2 = []
-                    if org in coords and chromo_end in coords[org]:
-                        for x in coords[org][chromo_end]:
-                            if x[0] >= start and x[1] <= end:
-                                elements2.append(x[-1])
+                    for x in coords[org][chromo_end]:
+                        if x[0] >= start and x[1] <= end:
+                            elements2.append(x[-1])
                     f.write('-----------------------------------------------------------------------------------------------------------------\n')
                     f.write(f'<<< {org}\tregion {ident}\t{chromo_end}\t{start} (== start of chr) \t{end}\tPOTENTIAL CHROMOSOMAL BREAKPOINT {bp_no} REGION 2 >>>\n')
                     f.write(f'\telements: {elements2}\n')
@@ -579,8 +520,6 @@ if __name__ == "__main__":
                         for org2,l in pw_syn[org][ident].items():
                             if len(l) == 0:
                                 continue
-                            if org2 not in regions_matrix[org][ident]:
-                                regions_matrix[org][ident][org2] = {}
                             l_mcl = []
                             if org in pw_syn_mcl and ident in pw_syn_mcl[org] and org2 in pw_syn_mcl[org][ident]:
                                 l_mcl = pw_syn_mcl[org][ident][org2]
@@ -590,16 +529,12 @@ if __name__ == "__main__":
                                 f.write(f'\t\t{org2}:\n')
                             for reg2 in l:
                                 if reg2 in l_mcl:
-                                    regions_matrix[org][ident][org2][reg2] = 1
                                     f.write(f'\t\t\tregion {reg2} [1] \n')
                                 else:
-                                    regions_matrix[org][ident][org2][reg2] = 0
                                     f.write(f'\t\t\tregion {reg2} [0] \n')
                     f.write(f'\tadditionally transitively pairwise syntenic to:\n')
                     if org in trans_syn and ident in trans_syn[org]:
                         for org2,l in trans_syn[org][ident].items():
-                            if org2 not in regions_matrix[org][ident]:
-                                regions_matrix[org][ident][org2] = {}
                             if len(l) == 0:
                                 continue
                             if len(l) > 1:
@@ -607,7 +542,6 @@ if __name__ == "__main__":
                             else:
                                 f.write(f'\t\t{org2}:\n')
                             for reg2 in l:
-                                regions_matrix[org][ident][org2][reg2] = 't'
                                 f.write(f'\t\t\tregion {reg2}\n')
                     f.write('-----------------------------------------------------------------------------------------------------------------\n')
                     bp_no += 1
@@ -620,8 +554,6 @@ if __name__ == "__main__":
                         for org2,l in pw_syn[org][ident].items():
                             if len(l) == 0:
                                 continue
-                            if org2 not in regions_matrix[org][ident]:
-                                regions_matrix[org][ident][org2] = {}
                             l_mcl = []
                             if org in pw_syn_mcl and ident in pw_syn_mcl[org] and org2 in pw_syn_mcl[org][ident]:
                                 l_mcl = pw_syn_mcl[org][ident][org2]
@@ -631,26 +563,19 @@ if __name__ == "__main__":
                                 f.write(f'\t\t{org2}:\n')
                             for reg2 in l:
                                 if reg2 in l_mcl:
-                                    regions_matrix[org][ident][org2][reg2] = 1
                                     f.write(f'\t\t\tregion {reg2} [1] \n')
                                 else:
-                                    regions_matrix[org][ident][org2][reg2] = 0
                                     f.write(f'\t\t\tregion {reg2} [0] \n')
                     f.write(f'\tadditionally transitively pairwise syntenic to:\n')
                     if org in trans_syn and ident in trans_syn[org]:
                         for org2,l in trans_syn[org][ident].items():
                             if len(l) == 0:
                                 continue
-                            if org2 not in regions_matrix[org][ident]:
-                                regions_matrix[org][ident][org2] = {}
                             if len(l) > 1:
                                 f.write(f'\t\t{org2} (potential breakpoints as multiple regions match - likely just artificial partition into multiple regions due to actual sequence insertions/deletions or program parameter/anchor availability/assembly artefacts):\n')
                             else:
                                 f.write(f'\t\t{org2}:\n')
                             for reg2 in l:
-                                regions_matrix[org][ident][org2][reg2] = 't'
                                 f.write(f'\t\t\tregion {reg2}\n')
                     f.write('-----------------------------------------------------------------------------------------------------------------\n')
             f.write(f'==============================================================================================================\n')
-    with open(f'regions_matrix_chr07','wb') as f:
-        pickle.dump(regions_matrix,f)

@@ -47,4 +47,5 @@ rule blast_and_clasp_iteratively:
     params:
             ws_anchor_making = ws_anchor_making
     shell:
-            f'{code_dir}/self-blast-clasp.py {{wildcards.file}} {{params.ws_anchor_making}} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/blast_clasp_done_{{wildcards.file}}'
+            #f'{code_dir}/self-blast-clasp.py {{wildcards.file}} {{params.ws_anchor_making}} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/blast_clasp_done_{{wildcards.file}}'
+            f'{code_dir}/self-blast-clasp.py {{wildcards.file}} {{params.ws_anchor_making}} {work_dir} && touch {work_dir}/touch/blast_clasp_done_{{wildcards.file}}'

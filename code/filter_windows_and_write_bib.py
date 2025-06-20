@@ -779,6 +779,9 @@ if __name__ == "__main__":
                 k = int(line.split('=')[1])
             elif 'e=' in line:
                 e = int(line.split('=')[1])
+
+    infile = f'/scr/k80san/karl/AncST_server/AncST/utils/genmap_out/{org}/{k}_{e}.freq16'
+
     print(f'filtering windows with parameters: k={k}, e={e}, len_lmers={len_lmers}, interval={interval}, percentile={percentile}')
     idx = get_low_count_windows(org,infile,outfile,k,e,len_lmers,interval,percentile)
     

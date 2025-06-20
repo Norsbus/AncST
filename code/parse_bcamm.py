@@ -112,19 +112,22 @@ def parse_clasp_out(orgs_tuple,file,ws):
 
                 else:
                     inverted = False
-                
-                if check_score(score,org1,i_seq_org1,start1,end1,org2,i_seq_org2,start2,end2):
 
-                    to_remove_in_1 = []
-                    to_remove_in_2 = []
-                    
+                if 'dup' in dict_org1[i_seq_org1] and dict_org1[i_seq_org1]['dup'] == 1 or 'dup' in dict_org2[i_seq_org2] and dict_org2[i_seq_org2]['dup'] == 1:
+                    dup = 1
+                else:
+                    dup = 0
+                
+                if dup == 1 or check_score(score,org1,i_seq_org1,start1,end1,org2,i_seq_org2,start2,end2):
+
                     len_seq_org1 = end_seq_org1 - i_seq_org1
                     len_seq_org2 = end_seq_org2 - i_seq_org2
-                   
+
                     # is it already in there
                     if i_seq_org1 not in results_org1:
                         results_org1[i_seq_org1] = {}
                         results_org1[i_seq_org1]['meta'] = {}
+
                         results_org1[i_seq_org1]['matches not considered upon applying stricter score criterion since there are consistency issues'] = {}
                         results_org1[i_seq_org1]['meta']['tolerance range for multiple matches'] = tolerance + dict_org1[i_seq_org1]['end'] - dict_org1[i_seq_org1]['start']
                         results_org1[i_seq_org1]['meta']['word size candidates matching'] = ws
@@ -134,31 +137,60 @@ def parse_clasp_out(orgs_tuple,file,ws):
                         results_org1[i_seq_org1]['meta']['multiple matches on different strands'] = 0
                         results_org1[i_seq_org1]['meta']['multiple matches on different chromosomes'] = 0
                         results_org1[i_seq_org1]['meta']['changed matches and metadata upon applying stricter score criterion'] = 0
-    
-                        
-                        results_org1[i_seq_org1]['matches'] = {i_seq_org2:{}}
-                        results_org1[i_seq_org1]['matches'][i_seq_org2]['match is on other strand in other genome'] = inverted
-                        results_org1[i_seq_org1]['matches'][i_seq_org2][f'hit coordinates in {org2} candidate'] = [start2,end2]
-                        results_org1[i_seq_org1]['matches'][i_seq_org2][f'hit coordinates in (own) {org1} candidate'] = [start1,end1]
-                        results_org1[i_seq_org1]['matches'][i_seq_org2]['match score'] = score
-                    
-                    else:
-                        if i_seq_org2 in results_org1[i_seq_org1]['matches']:
-                            score_there = results_org1[i_seq_org1]['matches'][i_seq_org2]['match score']
-                            if score_there < score:
-                                results_org1[i_seq_org1]['matches'][i_seq_org2]['match score'] = score
-                                results_org1[i_seq_org1]['matches'][i_seq_org2][f'hit coordinates in {org2} candidate']  = [start2,end2]
-                                results_org1[i_seq_org1]['matches'][i_seq_org2][f'hit coordinates in (own) {org1} candidate']  = [start1,end1]
-                                results_org1[i_seq_org1]['matches'][i_seq_org2]['match is on other strand in other genome'] = inverted
+                        if dup == 1:
+                            results_org1[i_seq_org1]['dups_matches'] = {i_seq_org2:{}}
+                            results_org1[i_seq_org1]['dups_matches'][i_seq_org2]['match is on other strand in other genome'] = inverted
+                            results_org1[i_seq_org1]['dups_matches'][i_seq_org2][f'hit coordinates in {org2} candidate'] = [start2,end2]
+                            results_org1[i_seq_org1]['dups_matches'][i_seq_org2][f'hit coordinates in (own) {org1} candidate'] = [start1,end1]
+                            results_org1[i_seq_org1]['dups_matches'][i_seq_org2]['match score'] = score
                         else:
-
-                            # append in any case (but collect starts and ends first)
-                            
-                            results_org1[i_seq_org1]['matches'][i_seq_org2] = {}
+                            results_org1[i_seq_org1]['matches'] = {i_seq_org2:{}}
                             results_org1[i_seq_org1]['matches'][i_seq_org2]['match is on other strand in other genome'] = inverted
                             results_org1[i_seq_org1]['matches'][i_seq_org2][f'hit coordinates in {org2} candidate'] = [start2,end2]
                             results_org1[i_seq_org1]['matches'][i_seq_org2][f'hit coordinates in (own) {org1} candidate'] = [start1,end1]
                             results_org1[i_seq_org1]['matches'][i_seq_org2]['match score'] = score
+                    
+                    else:
+                        if dup == 1:
+                            if 'dups_matches' not in results_org1[i_seq_org1]:
+                                results_org1[i_seq_org1]['dups_matches'] = {}
+                            if i_seq_org2 in results_org1[i_seq_org1]['dups_matches']:
+                                score_there = results_org1[i_seq_org1]['dups_matches'][i_seq_org2]['match score']
+                                if score_there < score:
+                                    results_org1[i_seq_org1]['dups_matches'][i_seq_org2]['match score'] = score
+                                    results_org1[i_seq_org1]['dups_matches'][i_seq_org2][f'hit coordinates in {org2} candidate']  = [start2,end2]
+                                    results_org1[i_seq_org1]['dups_matches'][i_seq_org2][f'hit coordinates in (own) {org1} candidate']  = [start1,end1]
+                                    results_org1[i_seq_org1]['dups_matches'][i_seq_org2]['match is on other strand in other genome'] = inverted
+                            else:
+
+                                # append in any case (but collect starts and ends first)
+                                
+                                results_org1[i_seq_org1]['dups_matches'][i_seq_org2] = {}
+                                results_org1[i_seq_org1]['dups_matches'][i_seq_org2]['match is on other strand in other genome'] = inverted
+                                results_org1[i_seq_org1]['dups_matches'][i_seq_org2][f'hit coordinates in {org2} candidate'] = [start2,end2]
+                                results_org1[i_seq_org1]['dups_matches'][i_seq_org2][f'hit coordinates in (own) {org1} candidate'] = [start1,end1]
+                                results_org1[i_seq_org1]['dups_matches'][i_seq_org2]['match score'] = score
+
+
+                        else:
+                            if 'matches' not in results_org1[i_seq_org1]:
+                                results_org1[i_seq_org1]['matches'] = {}
+                            if i_seq_org2 in results_org1[i_seq_org1]['matches']:
+                                score_there = results_org1[i_seq_org1]['matches'][i_seq_org2]['match score']
+                                if score_there < score:
+                                    results_org1[i_seq_org1]['matches'][i_seq_org2]['match score'] = score
+                                    results_org1[i_seq_org1]['matches'][i_seq_org2][f'hit coordinates in {org2} candidate']  = [start2,end2]
+                                    results_org1[i_seq_org1]['matches'][i_seq_org2][f'hit coordinates in (own) {org1} candidate']  = [start1,end1]
+                                    results_org1[i_seq_org1]['matches'][i_seq_org2]['match is on other strand in other genome'] = inverted
+                            else:
+
+                                # append in any case (but collect starts and ends first)
+                                
+                                results_org1[i_seq_org1]['matches'][i_seq_org2] = {}
+                                results_org1[i_seq_org1]['matches'][i_seq_org2]['match is on other strand in other genome'] = inverted
+                                results_org1[i_seq_org1]['matches'][i_seq_org2][f'hit coordinates in {org2} candidate'] = [start2,end2]
+                                results_org1[i_seq_org1]['matches'][i_seq_org2][f'hit coordinates in (own) {org1} candidate'] = [start1,end1]
+                                results_org1[i_seq_org1]['matches'][i_seq_org2]['match score'] = score
 
 
                     if i_seq_org2 not in results_org2:
@@ -174,26 +206,54 @@ def parse_clasp_out(orgs_tuple,file,ws):
                         results_org2[i_seq_org2]['meta']['multiple matches on different chromosomes'] = 0
                         results_org2[i_seq_org2]['meta']['changed matches and metadata upon applying stricter score criterion'] = 0
 
-                        results_org2[i_seq_org2]['matches'] = {i_seq_org1:{}}
-                        results_org2[i_seq_org2]['matches'][i_seq_org1]['match is on other strand in other genome'] = inverted
-                        results_org2[i_seq_org2]['matches'][i_seq_org1][f'hit coordinates in {org1} candidate'] = [start1,end1]
-                        results_org2[i_seq_org2]['matches'][i_seq_org1][f'hit coordinates in (own) {org2} candidate'] = [start2,end2]
-                        results_org2[i_seq_org2]['matches'][i_seq_org1]['match score'] = score
-                    else:
-                        if i_seq_org1 in results_org2[i_seq_org2]['matches']:
-                            score_there = results_org2[i_seq_org2]['matches'][i_seq_org1]['match score']
-                            if score_there < score:
-                                results_org2[i_seq_org2]['matches'][i_seq_org1]['match score'] = score
-                                results_org2[i_seq_org2]['matches'][i_seq_org1][f'hit coordinates in {org1} candidate']  = [start1,end1]
-                                results_org2[i_seq_org2]['matches'][i_seq_org1][f'hit coordinates in (own) {org2} candidate']  = [start2,end2]
-                                results_org2[i_seq_org2]['matches'][i_seq_org1]['match is on other strand in other genome'] = inverted
-                        else:
+                        if dup == 1:
+                            results_org2[i_seq_org2]['dups_matches'] = {i_seq_org1:{}}
+                            results_org2[i_seq_org2]['dups_matches'][i_seq_org1]['match is on other strand in other genome'] = inverted
+                            results_org2[i_seq_org2]['dups_matches'][i_seq_org1][f'hit coordinates in {org1} candidate'] = [start1,end1]
+                            results_org2[i_seq_org2]['dups_matches'][i_seq_org1][f'hit coordinates in (own) {org2} candidate'] = [start2,end2]
+                            results_org2[i_seq_org2]['dups_matches'][i_seq_org1]['match score'] = score
 
-                            results_org2[i_seq_org2]['matches'][i_seq_org1] = {}
+                        else:
+                            results_org2[i_seq_org2]['matches'] = {i_seq_org1:{}}
                             results_org2[i_seq_org2]['matches'][i_seq_org1]['match is on other strand in other genome'] = inverted
                             results_org2[i_seq_org2]['matches'][i_seq_org1][f'hit coordinates in {org1} candidate'] = [start1,end1]
                             results_org2[i_seq_org2]['matches'][i_seq_org1][f'hit coordinates in (own) {org2} candidate'] = [start2,end2]
                             results_org2[i_seq_org2]['matches'][i_seq_org1]['match score'] = score
+                    else:
+                        if dup == 1:
+                            if 'dups_matches' not in results_org2[i_seq_org2]:
+                                results_org2[i_seq_org2]['dups_matches'] = {}
+                            if i_seq_org1 in results_org2[i_seq_org2]['dups_matches']:
+                                score_there = results_org2[i_seq_org2]['dups_matches'][i_seq_org1]['match score']
+                                if score_there < score:
+                                    results_org2[i_seq_org2]['dups_matches'][i_seq_org1]['match score'] = score
+                                    results_org2[i_seq_org2]['dups_matches'][i_seq_org1][f'hit coordinates in {org1} candidate']  = [start1,end1]
+                                    results_org2[i_seq_org2]['dups_matches'][i_seq_org1][f'hit coordinates in (own) {org2} candidate']  = [start2,end2]
+                                    results_org2[i_seq_org2]['dups_matches'][i_seq_org1]['match is on other strand in other genome'] = inverted
+                            else:
+
+                                results_org2[i_seq_org2]['dups_matches'][i_seq_org1] = {}
+                                results_org2[i_seq_org2]['dups_matches'][i_seq_org1]['match is on other strand in other genome'] = inverted
+                                results_org2[i_seq_org2]['dups_matches'][i_seq_org1][f'hit coordinates in {org1} candidate'] = [start1,end1]
+                                results_org2[i_seq_org2]['dups_matches'][i_seq_org1][f'hit coordinates in (own) {org2} candidate'] = [start2,end2]
+                                results_org2[i_seq_org2]['dups_matches'][i_seq_org1]['match score'] = score
+                        else:
+                            if 'matches' not in results_org2[i_seq_org2]:
+                                results_org2[i_seq_org2]['matches'] = {}
+                            if i_seq_org1 in results_org2[i_seq_org2]['matches']:
+                                score_there = results_org2[i_seq_org2]['matches'][i_seq_org1]['match score']
+                                if score_there < score:
+                                    results_org2[i_seq_org2]['matches'][i_seq_org1]['match score'] = score
+                                    results_org2[i_seq_org2]['matches'][i_seq_org1][f'hit coordinates in {org1} candidate']  = [start1,end1]
+                                    results_org2[i_seq_org2]['matches'][i_seq_org1][f'hit coordinates in (own) {org2} candidate']  = [start2,end2]
+                                    results_org2[i_seq_org2]['matches'][i_seq_org1]['match is on other strand in other genome'] = inverted
+                            else:
+
+                                results_org2[i_seq_org2]['matches'][i_seq_org1] = {}
+                                results_org2[i_seq_org2]['matches'][i_seq_org1]['match is on other strand in other genome'] = inverted
+                                results_org2[i_seq_org2]['matches'][i_seq_org1][f'hit coordinates in {org1} candidate'] = [start1,end1]
+                                results_org2[i_seq_org2]['matches'][i_seq_org1][f'hit coordinates in (own) {org2} candidate'] = [start2,end2]
+                                results_org2[i_seq_org2]['matches'][i_seq_org1]['match score'] = score
                             
 
     return results_org1,results_org2 

@@ -9,7 +9,7 @@ work_dir = pathlib.Path(__file__).parent.resolve()
 root = str(pathlib.Path(__file__).parents[1])
 code_dir = root + '/code'
 anchor_dir = root + '/anchors'
-savespace = 'HOMEDIR/savespace'
+savespace = '/scr/k80san/karl//savespace'
 
 rando = randint(0,10000)
 while pathlib.Path(f'{savespace}/{rando}').exists():

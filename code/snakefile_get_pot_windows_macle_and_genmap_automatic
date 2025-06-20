@@ -74,10 +74,11 @@ rule genmap_map:
 
 rule filter_windows:
     input: 
+            f"{root}/utils/macle_out/{{organism}}/{L}_{I}.txt",
             f"{root}/utils/genomes/{{organism}}.fasta"
-    #log: 
-    #        err = f"{work_dir}/logs/filter/{{organism}}.err",
-    #        out = f"{work_dir}/logs/filter/{{organism}}.out"
+    log: 
+            err = f"{work_dir}/logs/filter/{{organism}}.err",
+            out = f"{work_dir}/logs/filter/{{organism}}.out"
     output: 
             f"{work_dir}/windows_low_kmers_indices/{{organism}}",
             f"{work_dir}/windows_low_kmers_fastas/{{organism}}.fasta",
@@ -90,17 +91,12 @@ rule filter_windows:
             p = P
     benchmark:
             f"{work_dir}/log/benchmarks/{{organism}}.filter.benchmark.txt"
-    resources:
-            runtime="20:00:00",
-            cpus_per_task=1,
-            mem_mb=64000
     threads:
             1
     conda:
             "snakemake"
     shell: 
-            #f'{code_dir}/filter_windows_and_write_bib.py {{wildcards.organism}} {root}/utils/genmap_out/{{wildcards.organism}}/{K}_{E}.freq16 {work_dir}/windows_low_kmers_indices/{{wildcards.organism}} {{threads}} {{params.k}} {{params.e}} {{params.l}} {{params.i}} {{params.p}} 1> {{log.out}} 2> {{log.err}} {work_dir}'
-            f'{code_dir}/filter_windows_and_write_bib.py {{wildcards.organism}} {root}/utils/genmap_out/{{wildcards.organism}}/{K}_{E}.freq16 {work_dir}/windows_low_kmers_indices/{{wildcards.organism}} {{threads}} {{params.k}} {{params.e}} {{params.l}} {{params.i}} {{params.p}} {work_dir}'
+            f'{code_dir}/filter_windows_macle_and_genmap_automatic.py {{wildcards.organism}} {root}/utils/genmap_out/{{wildcards.organism}}/{K}_{E}.freq16 {root}/utils/macle_out/{{wildcards.organism}}/{{params.l}}_{{params.i}}.txt {work_dir}/windows_low_kmers_indices/{{wildcards.organism}} {{threads}} {{params.k}} {{params.e}} {{params.l}} {{params.i}} {{params.p}} 1> {{log.out}} 2> {{log.err}} {work_dir}'
 
 rule split_fastas:
     input:
@@ -108,11 +104,9 @@ rule split_fastas:
             reve = f"{work_dir}/windows_low_kmers_fastas_rev/{{organism}}.fasta"
     output:
             f"{work_dir}/touch/split_done_{{organism}}"
-    resources:
-            runtime="00:20:00"
     group:
             "initial_split"
     conda:
             "snakemake"
     shell:
-            f'fasta-splitter --part-size 1000000 --out-dir {work_dir}/split_out_forward/{{wildcards.organism}} {work_dir}/windows_low_kmers_fastas/{{wildcards.organism}}.fasta && fasta-splitter --part-size 1000000 --out-dir {work_dir}/split_out_reverse/{{wildcards.organism}} {work_dir}/windows_low_kmers_fastas_rev/{{wildcards.organism}}.fasta && touch {work_dir}/touch/split_done_{{wildcards.organism}}'
+            f'fasta-splitter --part-size 100000 --out-dir {work_dir}/split_out_forward/{{wildcards.organism}} {work_dir}/windows_low_kmers_fastas/{{wildcards.organism}}.fasta && fasta-splitter --part-size 100000 --out-dir {work_dir}/split_out_reverse/{{wildcards.organism}} {work_dir}/windows_low_kmers_fastas_rev/{{wildcards.organism}}.fasta && touch {work_dir}/touch/split_done_{{wildcards.organism}}'

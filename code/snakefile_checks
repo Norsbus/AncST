@@ -42,7 +42,8 @@ rule checks:
     conda:
             "snakemake"
     shell:
-            f'{code_dir}/checks.py {{wildcards.organism}} {work_dir} {anchor_dir} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/checks_done_{{wildcards.organism}}'
+            #f'{code_dir}/checks.py {{wildcards.organism}} {work_dir} {anchor_dir} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/checks_done_{{wildcards.organism}}'
+            f'{code_dir}/checks.py {{wildcards.organism}} {work_dir} {anchor_dir} {work_dir} && touch {work_dir}/touch/checks_done_{{wildcards.organism}}'
 
 rule statistics:
     log: 
@@ -53,4 +54,5 @@ rule statistics:
     conda:
             "snakemake"
     shell:
-            f'{code_dir}/aligned_statistics.py {{wildcards.organism}} {work_dir} {anchor_dir} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/statistics_done_{{wildcards.organism}}'
+            #f'{code_dir}/aligned_statistics.py {{wildcards.organism}} {work_dir} {anchor_dir} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/statistics_done_{{wildcards.organism}}'
+            f'{code_dir}/aligned_statistics.py {{wildcards.organism}} {work_dir} {anchor_dir} {work_dir} && touch {work_dir}/touch/statistics_done_{{wildcards.organism}}'

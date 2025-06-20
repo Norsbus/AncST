@@ -14,7 +14,7 @@ work_dir = pathlib.Path(__file__).parent.resolve()
 root = str(pathlib.Path(__file__).parents[1])
 code_dir = root + '/code'
 anchor_dir = root + '/anchors'
-#savespace = 'REMOTEHOMEDIRsynteny/savespace'
+#savespace = 'REMOTE/scr/k80san/karl/synteny/savespace'
 
 #rando = randint(0,10000)
 #while pathlib.Path(f'{savespace}/{rando}').exists():

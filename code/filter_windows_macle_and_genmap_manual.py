@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
+from pprint import pprint
 import os
+import math
 import pathlib
 import numpy as np
 import pickle,json
@@ -12,6 +14,34 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 from bisect import bisect_left
 import pathlib
+
+def get_Cm_values(w,i):
+    global_dict = {}
+    global_dict[org] = []
+    Cms = {}
+    with open(f'{work_dir}/../utils/macle_out/{org}/{w}_{i}.txt') as f:
+        for line in f:
+            Cm = float(line.split()[-1].strip())
+            if Cm not in Cms:
+                Cms[Cm] = 0
+            Cms[Cm] += 1
+    s_unique = sorted(list(set(list(Cms.keys()))),reverse=True)
+    tot = 0
+    for Cm in s_unique:
+        tot += Cms[Cm]
+        global_dict[org].append((Cm,tot))
+    return(global_dict)
+
+def overlaps(x,y):
+    if x[0] >= y[0] and x[0] <= y[1]:
+        return True
+    if x[1] >= y[0] and x[1] <= y[1]:
+        return True
+    if y[0] >= x[0] and y[0] <= x[1]:
+        return True
+    if y[1] >= x[0] and y[1] <= x[1]:
+        return True
+    return False
 
 def get_idents(window):
     start,end = window
@@ -44,7 +74,7 @@ def make_k_mers(org,idx,k,e,len_window,interval,percentile):
             pos += 1
         ident = seqids[pos]
         # check again for chromosome breaks although this should largely be achieved automatically since genmap has count 0 for ends which are not valid
-        # could still be (and happens) when old and new ones are combined are lie between chromosome
+        # could still be (and happens) when old and new ones are combined and lie between chromosome
         # should be dealt with in combine_and_filter tho (just a check because new ones should never cover different chromosomes)
         ident2 = seqids[bisect_left(seqlen,end)]
         if end == seqlen[pos]:
@@ -52,13 +82,9 @@ def make_k_mers(org,idx,k,e,len_window,interval,percentile):
         if ident != ident2:
             # prints just to have look
             print(f'for window with start {i} and end {end} the start chromosome {ident} is not the same as end chromsome {ident2}')
-            print('kmer_counts:')
-            print(kmer_counts[i-13:end])
-            print(kmer_counts[i])
+            print('lens chromosomes (abs ends):')
             print(f'{seqlen}')
-            print(f'len kmers: {len(kmer_counts)}')
             print(f'len seq: {len(s)}')
-            
             continue
 
             
@@ -123,7 +149,8 @@ def get_sums(args):
         j += interval
     return(sums,indices)
 
-def get_low_count_windows(org,genmap_out_file,out_file_name,k,e,len_window,interval,percentile):
+def get_low_count_windows(org,genmap_out_file,out_file_name,k,e,len_window,interval,percentile,wanted_genome_size):
+
     l = int(len_window)
 
     percentile = int(percentile)
@@ -133,7 +160,7 @@ def get_low_count_windows(org,genmap_out_file,out_file_name,k,e,len_window,inter
     global kmer_counts
     kmer_counts = np.fromfile(genmap_out_file, dtype=np.uint16)
     
-    max_concur_proc = int(argv[4])
+    max_concur_proc = int(argv[5])
 
     #sums_global = []
     #indices_global = []
@@ -160,10 +187,15 @@ def get_low_count_windows(org,genmap_out_file,out_file_name,k,e,len_window,inter
     # but to be consistent it does now...not so much of a speed gain until now with those smaller genomes anyway and will probably never be the bottleneck
     # otherwise just implement checks to make sure windows are always the same when pipeline is run with same parameters
     sums_global,indices_global = get_sums((0,len(kmer_counts),l,interval))
-    perc = np.percentile(sums_global,percentile)
-    idx = np.where(sums_global < perc)[0]
-    final_idx = [indices_global[i] for i in idx]
-    final_idx = sorted(final_idx)
+    
+    lll = sorted(list(zip(sums_global,indices_global)))
+
+    how_many = int(wanted_genome_size/len_lmers)
+    final_idx = set([xxx[1] for xxx in lll[:how_many]])
+    last = lll[how_many-1][0]
+    for xxx in lll[how_many:]:
+        if xxx[0] <= last:
+            final_idx.add(xxx[1])
 
     return(final_idx)
 
@@ -179,19 +211,16 @@ def get_low_count_windows_multiple_k_e(org,genmap_out_file,out_file_name,k_e,len
 
     for k,e in k_e:
         
-        genmap_out_file = f'{root}/utils/genmap_out/{org}/{k}_{e}.freq16'
+        genmap_out_file = f'{work_dir}/../utils/genmap_out/{org}/{k}_{e}.freq16'
 
         kmer_counts_x = np.fromfile(genmap_out_file, dtype=np.uint16)
-        print(kmer_counts_x[:100])
         kmer_counts_x = kmer_counts_x/np.sum(kmer_counts_x)
-        print(kmer_counts_x[:100])
         if len(kmer_counts) == 0:
             kmer_counts = kmer_counts_x
         else:
             kmer_counts += kmer_counts_x
-        print(kmer_counts[:100])
     
-    max_concur_proc = int(argv[4])
+    max_concur_proc = int(argv[5])
 
     #sums_global = []
     #indices_global = []
@@ -225,9 +254,42 @@ def get_low_count_windows_multiple_k_e(org,genmap_out_file,out_file_name,k_e,len
 
     return(final_idx)
 
-def combine_and_filter_new_ones(idx,bib=False):
+def get_idx_from_macle(macle_file,half_the_window_size,pitch,percentile,global_Cm,wanted_genome_size):
+    starts = []
+    Cms = []
+    lll = []
+    with open(f'{work_dir}/../utils/macle_out/{org}/{half_the_window_size*2}_{pitch}.txt') as f:
+        for line in f:
+            chromo,midpoint,Cm = line.strip().split()
+            Cm = float(Cm)
+            midpoint = int(midpoint)
+            idx_chr = seqids.index(chromo)
+            if idx_chr == 0:
+                le = 0
+            else:
+                le = seqlen[idx_chr-1]
+            # macle output cuts half_the_window_sizes at end of chromosomes and uses "rest" as new half_the_window_size start
+            if midpoint < half_the_window_size:
+                abs_start = le
+            else:
+                abs_start = midpoint - half_the_window_size + le
+            starts.append(abs_start)
+            Cms.append(Cm)
+            lll.append((Cm,abs_start))
 
-    idx = sorted(idx)
+    lll = sorted(lll,reverse=True)
+    s_unique = sorted(list(set([xxx[0] for xxx in lll])),reverse=True)
+    unique_d = {}
+    for xxx in lll:
+        if xxx[0] not in unique_d:
+            unique_d[xxx[0]] = []
+        unique_d[xxx[0]].append(xxx[1])
+    final_idx = set([xxx[1] for xxx in lll if xxx[0] >= global_Cm])
+
+    return(final_idx)
+
+
+def combine_and_filter_new_ones(idx,bib=False):
 
     new_idx = []
 
@@ -236,40 +298,152 @@ def combine_and_filter_new_ones(idx,bib=False):
     if percentile < 31:
 
         while i < len(idx)-1:
+            print(f'processing {idx[i]}')
             idx_start = idx[i]
+            if idx_start in genmap_info:
+                len_lmers,interval = genmap_info[idx_start]
+            elif idx_start in macle_info:
+                len_lmers,interval = macle_info[idx_start]
+            else:
+                print(f'err {idx_start} not from macle nor genmap...?...')
             idx_end = idx[i] + len_lmers
             pos = bisect_left(seqlen,idx_start)
             if idx_start == seqlen[pos]:
                 pos += 1
+            if idx_end > seqlen[pos] - 1:
+                # means that its last window on chromosome and midpoint + interval is bigger than chromosome
+                print(f'last, not appending because too short:{idx_start} - {idx_end}')
+                i += 1
+                pos_tmp = bisect_left(seqlen,idx[i])
+                if idx[i] == seqlen[pos_tmp]:
+                    pos_tmp += 1
+                ident_tmp = seqids[pos_tmp]
+                while ident_tmp == ident1:
+                    i += 1
+                    pos_tmp = bisect_left(seqlen,idx[i])
+                    if idx[i] == seqlen[pos_tmp]:
+                        pos_tmp += 1
+                    ident_tmp = seqids[pos_tmp]
+                continue
             ident1 = seqids[pos]
             pos = bisect_left(seqlen,idx[i+1])
             if idx[i+1] == seqlen[pos]:
                 pos += 1
             ident2 = seqids[pos]
-            while i < len(idx)-1 and (idx_end >= idx[i+1] or idx[i+1] - idx_end <= interval) and ident1 == ident2:
+            if ident1 != ident2:
+                # means that first one is exactly end of chromosme and next one already on next chromosome
+                print(f'first one exactly end of chromosome, appending {idx_start} - {idx_end}')
+                new_idx.append((idx_start,idx_end))
+                i += 1
+                pos_tmp = bisect_left(seqlen,idx[i])
+                if idx[i] == seqlen[pos_tmp]:
+                    pos_tmp += 1
+                ident_tmp = seqids[pos_tmp]
+                while ident_tmp == ident1:
+                    i += 1
+                    pos_tmp = bisect_left(seqlen,idx[i])
+                    if idx[i] == seqlen[pos_tmp]:
+                        pos_tmp += 1
+                    ident_tmp = seqids[pos_tmp]
+                continue
+            end2 = idx[i+1]+len_lmers
+            if end2 > seqlen[pos] - 1:
+                # means that next one is at end of chromosome. i += 2 cos 2 processed since i and i + 1 combined
+                end2 = seqlen[pos] - 1
+                print(f'second one is last one, appending {idx_start} - {end2}')
+                new_idx.append((idx_start,end2))
+                i += 2
+                pos_tmp = bisect_left(seqlen,idx[i])
+                if idx[i] == seqlen[pos_tmp]:
+                    pos_tmp += 1
+                ident_tmp = seqids[pos_tmp]
+                while ident_tmp == ident1:
+                    i += 1
+                    pos_tmp = bisect_left(seqlen,idx[i])
+                    if idx[i] == seqlen[pos_tmp]:
+                        pos_tmp += 1
+                    ident_tmp = seqids[pos_tmp]
+                continue
+            while i < len(idx)-1 and (idx_end >= idx[i+1] or idx[i+1] - idx_end <= 100) and ident1 == ident2:
+                next_i = idx[i+1]
+                if next_i in genmap_info:
+                    len_lmers,interval = genmap_info[next_i]
+                elif next_i in macle_info:
+                    len_lmers,interval = macle_info[next_i]
+                else:
+                    print(f'err {next_i} not from macle nor genmap...?...')
                 idx_end = idx[i+1] + len_lmers
                 i += 1
+                if idx_end > seqlen[seqids.index(ident1)] - 1:
+                    idx_end = seqlen[seqids.index(ident1)] - 1
+                    pos_tmp = bisect_left(seqlen,idx[i])
+                    if idx[i] == seqlen[pos_tmp]:
+                        pos_tmp += 1
+                    ident_tmp = seqids[pos_tmp]
+                    while ident_tmp == ident1:
+                        i += 1
+                        pos_tmp = bisect_left(seqlen,idx[i])
+                        if idx[i] == seqlen[pos_tmp]:
+                            pos_tmp += 1
+                        ident_tmp = seqids[pos_tmp]
+                    break
                 # have to check again...pre-calculating ident2 for checks in while loops which uses i+1 but when used here it could be out of range
                 if i < len(idx)-1:
                     pos = bisect_left(seqlen,idx[i+1])
                     if idx[i+1] == seqlen[pos]:
                         pos += 1
                     ident2 = seqids[pos]
+                else:
+                    break
+            pos = bisect_left(seqlen,idx_end)
+            if idx_end == seqlen[pos]:
+                pos += 1
+            ident2 = seqids[pos]
+            if ident1 != ident2:
+                print('why 1 diff chrs',idx_start,idx_end,ident1,ident2,seqlen[seqids.index(ident1)],seqlen[seqids.index(ident2)])
+                continue
+            print(f'normal one, appending {idx_start} - {idx_end}')
             new_idx.append((idx_start,idx_end))
             i += 1
 
         if len(new_idx) > 0 and len(idx) > 0:
             if new_idx[-1][1] != idx[-1] + len_lmers:
-                new_idx.append((idx[-1],idx[-1]+len_lmers))
+                idx_start = idx[-1]
+                ###
+                pos = bisect_left(seqlen,idx[-1])
+                if idx[-1] == seqlen[pos]:
+                    pos += 1
+                ident1 = seqids[pos]
+                if idx[-1] + len_lmers > seqlen[pos] - 1:
+                    idx_end = seqlen[pos] - 1
+
+                else:
+                    idx_end = idx[-1] + len_lmers
+                # if it was last, might actually be in there, so check and process only otherwise
+                if idx_end != new_idx[-1][1]:
+                    pos = bisect_left(seqlen,idx_end)
+                    if idx_end == seqlen[pos]:
+                        pos += 1
+                    ident2 = seqids[pos]
+                    if ident1 != ident2:
+                        print('why 2 diff chrs',idx[-1],idx[-1]+len_lmers,ident1,ident2,seqlen[seqids.index(ident1)],seqlen[seqids.index(ident2)])
+                    ###
+                    print(f'last normal one, appending {idx_start} - {idx_end}')
+                    new_idx.append((idx_start,idx_end))
 
     else:
         for i in idx:
+            if idx_start in genmap_info:
+                len_lmers,interval = genmap_info[idx_start]
+            elif idx_start in macle_info:
+                len_lmers,interval = macle_info[idx_start]
+            else:
+                print(f'err {idx_start} not from macle nor genmap...?...')
             new_idx.append((i,i+len_lmers))
 
     if not bib:
         # for checks/debugging
         for start,end in new_idx:
-
             print('===============')
             print('orig',start,end)
         return(new_idx)
@@ -379,6 +553,10 @@ def combine_and_filter_new_ones(idx,bib=False):
                     else:
                         to_del2.add(i)
                 # update end as well
+                if i < 0:
+                    i = 0
+                elif i >= len(old_idx_end):
+                    i = len(old_idx_end) - 1
                 if end > old_idx_end[i-1]:
                     old_idx_end[idx_start_in_old_idx] = end
                 else:
@@ -782,56 +960,127 @@ def combine_and_filter_new_ones(idx,bib=False):
 if __name__ == "__main__":
 
     org = argv[1]
-    infile = argv[2]
-    outfile = argv[3]
+    infile_genmap = argv[2]
+    infile_macle = argv[3]
+    outfile = argv[4]
 
     code_dir = pathlib.Path(__file__).parent.resolve()
     root = str(pathlib.Path(__file__).parents[1])
     anchor_dir = root + '/anchors'
     work_dir = argv[-1]
 
-    max_concur_proc = int(argv[4])
+    genome_size = os.path.getsize(f'{work_dir}/../utils/genomes/{org}.fasta')
 
-    k,e,len_lmers,interval,percentile = int(argv[5]),int(argv[6]),int(argv[7]),int(argv[8]),int(argv[9])
+    max_concur_proc = int(argv[5])
 
-    k_e = []
-    
-    if pathlib.Path(f'{work_dir}/multiple_k_e').exists():
-        with open(f'{work_dir}/multiple_k_e') as f:
-            for line in f:
-                if '#' in line:
-                    continue
-                line = line.strip().split()
-                if len(line) != 2:
-                    continue
-                k,e = line
-                k_e.append((k,e))
+    k,e,len_lmers,interval,percentile = int(argv[6]),int(argv[7]),int(argv[8]),int(argv[9]),int(argv[10])
 
-    k_e = list(set(k_e))
-
-    with open(f'k_e_{org}') as f:
-        for line in f:
-            if 'k=' in line:
-                k = int(line.split('=')[1])
-            elif 'e=' in line:
-                e = int(line.split('=')[1])
-
-    infile = f'/scr/k80san/karl/AncST_server/AncST/utils/genmap_out/{org}/{k}_{e}.freq16'
-
-    if len(k_e) == 0:
-        print(f'filtering windows with parameters: k={k}, e={e}, len_lmers={len_lmers}, interval={interval}, percentile={percentile}')
-        idx = get_low_count_windows(org,infile,outfile,k,e,len_lmers,interval,percentile)
-    else:
-        print(f'filtering windows with parameters: len_lmers={len_lmers}, interval={interval}, percentile={percentile}')
-        print(f' and multiple k and e: {k_e}')
-        idx = get_low_count_windows_multiple_k_e(org,infile,outfile,k_e,len_lmers,interval,percentile)
-        
-    
-    with open(root + '/utils/metadata_genomes/{}'.format(org),'rb') as f:
+    with open(f'{work_dir}/../utils/metadata_genomes/{org}','rb') as f:
         seqids,seqlen,s = pickle.load(f)
 
-    bib = False
+    ### macle ###
 
+    macle_paras = []
+    with open('macle_params.txt') as f:
+        for line in f:
+            if org in line:
+                macle_paras.append(line.strip().split()[1:])
+    
+    idx1 = []
+    best1 = []
+    macle_info = {}
+    for paras in macle_paras:
+        len_lmers = int(paras[0]) 
+        interval = int(paras[1]) 
+        wanted_genome_size = int(int(paras[2])/100*genome_size)
+
+        Cm_values = get_Cm_values(len_lmers,interval)
+        tot = 0
+        iii = 0
+        while tot < wanted_genome_size:
+            Cm_value = Cm_values[org][iii][0]
+            tot += Cm_values[org][iii][1]*len_lmers
+            iii+=1
+
+        x = get_idx_from_macle(infile_macle,int(len_lmers/2),int(interval),percentile,Cm_value,wanted_genome_size)
+        for iii in x:
+            macle_info[iii] = [len_lmers,interval]
+        if int(paras[3]) == 0:
+            best1.append(x)
+        elif int(paras[3]) == 1:
+            idx1.append(x)
+        else:
+            print('wrong macle paras',macle_paras)
+
+    ### genmap ###
+
+    genmap_paras = []
+    with open('genmap_params.txt') as f:
+        for line in f:
+            if org in line:
+                genmap_paras.append(line.strip().split()[1:])
+
+    idx2 = []
+    best2 = []
+    genmap_info = {}
+    for paras in genmap_paras:
+
+        k = int(paras[0])
+        e = int(paras[1])
+        len_lmers = int(paras[2])
+        interval = int(paras[3])
+        wanted_genome_size = int(int(paras[4])/100*genome_size)
+        infile = f'{work_dir}/../utils/genmap_out/{org}/{k}_{e}.freq16'
+        x = get_low_count_windows(org,infile,outfile,k,e,len_lmers,interval,percentile,wanted_genome_size)
+        for iii in x:
+            genmap_info[iii] = [len_lmers,interval]
+        if int(paras[5]) == 0:
+            best2.append(x)
+        elif int(paras[5]) == 1:
+            idx2.append(x)
+        else:
+            print('wrong genmap paras',genmap_paras)
+
+    idx = set()
+
+    for s1 in idx1:
+        for s2 in idx2:
+            pos_macle = []
+            pos_genmap = []
+            for i in s1:
+                pos_macle.append((i,i+macle_info[i][0]))
+            for i in s2:
+                pos_genmap.append((i,i+genmap_info[i][0]))
+
+            pos_macle = sorted(pos_macle)
+            mstarts = [xxx[0] for xxx in pos_macle]
+            mends = [xxx[1] for xxx in pos_macle]
+            pos_genmap = sorted(pos_genmap)
+            gstarts = [xxx[0] for xxx in pos_genmap]
+            gends = [xxx[1] for xxx in pos_genmap]
+            for ms,me in pos_macle:
+                bigger_end_than_start_idx = bisect_left(gends,ms)
+                bigger_start_than_end_idx = max(bisect_left(gstarts,me),0)
+                if bigger_start_than_end_idx - bigger_end_than_start_idx < 1:
+                    continue
+                for gs,ge in pos_genmap[max(0,bigger_end_than_start_idx-10):min(bigger_start_than_end_idx+10,len(pos_genmap))]:
+                    t1 = (ms,me)
+                    t2 = (gs,ge)
+                    if overlaps(t1,t2):
+                        idx.add(ms)
+                        idx.add(gs)
+
+    for s1 in best1:
+        for i in s1:
+            idx.add(i)
+    for s2 in idx2:
+        for i in s2:
+            idx.add(i)
+
+    idx = sorted(list(idx))
+    
+    bib = False
+    
     try:
         with open(anchor_dir + '/candidates' + f'/{org}','rb') as f:
             bib = pickle.load(f)
@@ -849,7 +1098,31 @@ if __name__ == "__main__":
         with open(f'{work_dir}/to_del/{org}/to_del','wb') as f:
             pickle.dump(to_del, f)
     # outfile is indices directory/{org}
+    # chromo check
+    to_del = set()
+    for t in idx:
+        pos = bisect_left(seqlen,t[0])
+        if t[0] == seqlen[pos]:
+            pos += 1
+        ident1 = seqids[pos]
+        pos = bisect_left(seqlen,t[1])
+        if t[1] == seqlen[pos]:
+            pos += 1
+        ident2 = seqids[pos]
+        if ident1 != ident2:
+            print(f'ident diff : {t} {ident1} {ident2}')
+            to_del.add(t)
+    for i in sorted(list(to_del),reverse=True):
+        idx.remove(i)
+
+
     with open(outfile,'wb') as f:
         pickle.dump(idx, f)
+    
+    for enu,t in enumerate(idx[:-1]):
+        if idx[enu+1][0] <= t[1]:
+            print(f'overlappping: {t} {idx[enu+1]}')
+    tot_len = sum([x[1] - x[0] for x in idx])
+    print(f'{len(idx)} of tot len {tot_len} non-overlapping candidates are processed')
 
     make_k_mers(org,idx,k,e,len_lmers,interval,percentile)

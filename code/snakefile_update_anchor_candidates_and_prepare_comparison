@@ -25,7 +25,7 @@ with open(f"{work_dir}/dont_update","r") as f:
 
 # organisms to comput for
 orgs = []
-with open(f"{work_dir}/orgs","r") as f:
+with open(f"{work_dir}/compute_anchors_for","r") as f:
     for line in f:
         if line.strip() not in dont_update:
             orgs.append(line.strip())
@@ -80,4 +80,5 @@ rule update_anchors:
     conda:
             "snakemake"
     shell: 
-            f'{code_dir}/update_anchor_candidates.py {{wildcards.organism}} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/update_anchors_done_{{wildcards.organism}}'
+            #f'{code_dir}/update_anchor_candidates.py {{wildcards.organism}} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/update_anchors_done_{{wildcards.organism}}'
+            f'{code_dir}/update_anchor_candidates.py {{wildcards.organism}} {work_dir} && touch {work_dir}/touch/update_anchors_done_{{wildcards.organism}}'

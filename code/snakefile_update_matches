@@ -46,7 +46,8 @@ rule collect_output:
     conda:
             "snakemake"
     shell: 
-            f'{code_dir}/collect_output.py {{wildcards.org}} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/collect_output_done_{{wildcards.org}}'
+            #f'{code_dir}/collect_output.py {{wildcards.org}} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/collect_output_done_{{wildcards.org}}'
+            f'{code_dir}/collect_output.py {{wildcards.org}}  {work_dir} && touch {work_dir}/touch/collect_output_done_{{wildcards.org}}'
 
 rule inconsistencies:
     input:
@@ -61,4 +62,4 @@ rule inconsistencies:
     conda:
             "snakemake"
     shell: 
-            f'{code_dir}/inconsistencies.py {{wildcards.org}} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/deal_with_inconsistencies_done_{{wildcards.org}}'
+            f'{code_dir}/inconsistencies.py {{wildcards.org}} {work_dir} && touch {work_dir}/touch/deal_with_inconsistencies_done_{{wildcards.org}}'

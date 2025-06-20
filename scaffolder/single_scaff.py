@@ -57,7 +57,7 @@ for i in iss:
     if chromo not in orders_others[target_genome]:
         orders_others[target_genome][chromo] = []
         oris_others[target_genome][chromo] = {}
-    if target_genome in anchors[i]['matches'] and anchors[i]['matches'][target_genome]['meta']['multiple matches out of tolerance range'] == 0:
+    if 'matches' in anchors[i] and target_genome in anchors[i]['matches'] and 'matches' in anchors[i]['matches'][target_genome] and anchors[i]['matches'][target_genome]['meta']['multiple matches out of tolerance range'] == 0:
         for j,match_bib in anchors[i]['matches'][target_genome]['matches'].items():
             chromo2 = t_anchors[j]['chromosome'] 
             if chromo2 not in oris_others[target_genome][chromo]:
@@ -134,7 +134,7 @@ for ref in small_meta[ref_genome][0]:
 orders_others = new_orders_others
 
 limited = {}
-with open(f'singles_out/divergently_aligned_contigs_from_AncST_ref_{ref_genome}.txt','w') as f:
+with open(f'singles_out/divergently_aligned_contigs_target_{target_genome}_from_AncST_ref_{ref_genome}.txt','w') as f:
     for contig,bib in mapping_contig_chromo.items():
         if len(bib) > 1:
             tot_count = sum(bib.values())

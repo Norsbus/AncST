@@ -10,6 +10,7 @@ import os,pathlib
 from sys import argv
 from subprocesses import blast,clasp
 from copy import deepcopy
+from pprint import pprint
 
 def check_range_and_chromos(i_org,entry,bib,org2):
     tolerance = 10000
@@ -302,12 +303,34 @@ def collect(bib,files,org,inconsistencies):
                 if i not in parsed[org2]:
                     parsed[org2][i] = temp[i]
                 else:
-                    for j,m in temp[i]['matches'].items():
-                        if j in parsed[org2][i]['matches']:
-                            if m['match score'] > parsed[org2][i]['matches'][j]['match score']:
+                    if 'matches' in temp[i]:
+                        for j,m in temp[i]['matches'].items():
+                            if 'matches' not in parsed[org2][i]:
+                                parsed[org2][i]['matches'] = {}
+                            if j in parsed[org2][i]['matches']:
+                                if m['match score'] > parsed[org2][i]['matches'][j]['match score']:
+                                    parsed[org2][i]['matches'][j] = m
+                            else:
                                 parsed[org2][i]['matches'][j] = m
-                        else:
-                            parsed[org2][i]['matches'][j] = m
+                    if 'dups_matches' in temp[i]:
+                        for j,m in temp[i]['dups_matches'].items():
+                            if 'dups_matches' not in parsed[org2][i]:
+                                parsed[org2][i]['dups_matches'] = {}
+                            if j in parsed[org2][i]['dups_matches']:
+                                if m['match score'] > parsed[org2][i]['dups_matches'][j]['match score']:
+                                    parsed[org2][i]['dups_matches'][j] = m
+                            else:
+                                parsed[org2][i]['dups_matches'][j] = m
+
+    #for org2,bib in parsed.items():
+    #    for i in bib:
+    #        #if 'matches' in bib[i]:
+    #        #    print(1,bib[i]['matches'])
+    #        #    input()
+    #        if 'matches' in bib[i] and 'dups_matches' in bib[i]:
+    #            print(1,bib[i]['matches'])
+    #            print(2,bib[i]['dups_matches'])
+    #            input()
 
     ### PARALELIZABLE BY CONSIDERING PARIWISE ANCHOR MAPS AND MERGING THEM AFTER ###
     
@@ -331,12 +354,20 @@ def collect(bib,files,org,inconsistencies):
         for i in parsed_results:
             if i in matches_to_del and org2 in matches_to_del[i]:
                 del matches_to_del[i][org2]
+            if 'matches' not in parsed_results[i]: #implicit: and 'dups_matches' in parsed_results[i]:
+                if org2 not in bib[i]['matches']:
+                    bib[i]['matches'][org2] = parsed_results[i]
+                else:
+                    bib[i]['matches'][org2]['dups_matches'] = parsed_results[i]['dups_matches']
+                continue
             # below is a bit hacky
             # resuing reconcile function with old and new entries being the same (except that new is only considered as its matches)
             if org2 not in bib[i]['matches']:
-                bib[i]['matches'][org2],inconsistencies = reconcile(parsed_results[i],parsed_results[i]['matches'],org2,i,inconsistencies)
+                if 'matches' in parsed_results[i]:
+                    bib[i]['matches'][org2],inconsistencies = reconcile(parsed_results[i],parsed_results[i]['matches'],org2,i,inconsistencies)
             else:
-                bib[i]['matches'][org2],inconsistencies = reconcile(bib[i]['matches'][org2],parsed_results[i]['matches'],org2,i,inconsistencies)
+                if 'matches' in bib[i]['matches'][org2]:
+                    bib[i]['matches'][org2],inconsistencies = reconcile(bib[i]['matches'][org2],parsed_results[i]['matches'],org2,i,inconsistencies)
 
     # here checking again the matches for which one or more were deleted by filtering process of new windows
     # --> might have changed something about there ranges...
@@ -366,6 +397,8 @@ def collect(bib,files,org,inconsistencies):
     # in checks.py now but kept here if you wanna change things automatically (if its always a good match e.g., just delete the ones in "not considered")
     for i,abib in bib.items():
         for org2,bbib in abib['matches'].items():
+            if 'matches' not in bbib:
+                continue
             for j,cbib in bbib['matches'].items():
                 if j in bbib['matches not considered upon applying stricter score criterion since there are consistency issues']:
                     if cbib == bbib['matches not considered upon applying stricter score criterion since there are consistency issues'][j]:
@@ -402,16 +435,17 @@ if __name__ == "__main__":
     inconsistencies,mark_in_others = {},{}
     new_bib,inconsistencies = collect(bib,files,org,inconsistencies)
     
+    #for i,bib in new_bib.items():
+    #    for org2,bib2 in bib['matches'].items():
+    #        if 'matches' in bib2 and 'dups_matches' in bib2:  
+    #            pprint(bib)
+    #            input()
     with open(anchor_dir_aligned + f'/{org}','wb') as f:
         pickle.dump(new_bib,f)
     
     for org2,bib in inconsistencies.items():
-        if org2 == 'melanogaster':
-            continue
         with open(f'{work_dir}/inconsistencies/{org2}/{org}','wb') as f:
             pickle.dump(bib,f)
     for org2,bib in mark_in_others.items():
-        if org2 == 'melanogaster':
-            continue
         with open(f'{work_dir}/mark_in_others/{org2}/{org}','wb') as f:
             pickle.dump(bib,f)

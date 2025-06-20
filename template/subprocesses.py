@@ -10,7 +10,7 @@ import pickle
 def makeblastdb(org):
     path = getcwd()
     if not (isfile(path + "/blastdbs/{}.nin".format(org)) and isfile(path + "/blastdbs/{}.nhr".format(org)) and isfile(path + "/blastdbs/{}.nsq".format(org))):
-        run("makeblastdb -in OTHERHOMEDIRgenomes/{}.fasta -out blastdbs/{} -dbtype nucl".format(org,org).split())
+        run("makeblastdb -in OTHER/scr/k80san/karl/genomes/{}.fasta -out blastdbs/{} -dbtype nucl".format(org,org).split())
 
 def blast(db,query,outfile,word_size):
     cmd = 'blastn -db {} -query {} -strand plus -outfmt 6 -evalue 1e-3 -word_size {} -out {} -num_threads 2'.format(db,query,word_size,outfile).split()
@@ -28,7 +28,7 @@ def make_metadata(org):
     path = getcwd()
     if not isfile(path + "/../utils/metadata_genomes/{}".format(org)):
         
-        seqs = SeqIO.parse('OTHERHOMEDIRgenomes/{}.fasta'.format(org), "fasta")
+        seqs = SeqIO.parse('OTHER/scr/k80san/karl/genomes/{}.fasta'.format(org), "fasta")
         s = ''
         seqids = []
         seqlen = []

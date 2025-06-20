@@ -17,7 +17,7 @@ def thread_process(org):
 #SBATCH --error log/metadata/stderr_metadata_{org}\n\
 #SBATCH --output log/metadata/stdout_metadata_{org}\n\
     eval "$(conda shell.bash hook)"\n\
-    conda activate CONDAHOMEDIR/miniconda3/envs/snakemake\n\
+    conda activate /homes/biertank/karl//miniconda3/envs/snakemake\n\
     ./make_blastdb_and_metadata.py {org} && touch touch/{org}_metadata_done\n\
     """
         with open('run.slurm','w') as f:
@@ -30,9 +30,9 @@ def thread_process(org):
 
 if __name__ == "__main__":
     work_dir = argv[1]
-    os.environ['TMP_DIR'] = 'HOMEDIR/tmp'
+    os.environ['TMP_DIR'] = '/scr/k80san/karl//tmp'
     orgs = set()
-    with open('compute_anchors_for') as f:
+    with open('orgs') as f:
         for line in f:
             orgs.add(line.strip())
     for org in orgs:

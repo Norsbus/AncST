@@ -18,7 +18,7 @@ def thread_process(org):
 #SBATCH --error stderr_index_{org}\n\
 #SBATCH --output stdout_index_{org}\n\
 eval "$(conda shell.bash hook)"\n\
-conda activate CONDAHOMEDIR/miniconda3/envs/snakemake\n\
+conda activate /homes/biertank/karl//miniconda3/envs/snakemake\n\
 genmap index -F {work_dir}/../utils/genomes/{org}.fasta -I {work_dir}/../utils/genmap_indices/{org} && touch touch/{org}_index_done\n\
 """
         with open('run.slurm','w') as f:

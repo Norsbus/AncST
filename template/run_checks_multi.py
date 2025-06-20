@@ -28,7 +28,7 @@ for org in orgs:
 #SBATCH --error checks_log/{org}_err\n\
 #SBATCH --output checks_log/{org}_out\n\
 eval "$(conda shell.bash hook)"\n\
-conda activate CONDAHOMEDIR/miniconda3/envs/snakemake\n\
+conda activate /homes/biertank/karl//miniconda3/envs/snakemake\n\
 {first}"""
     with open(f'slurm_scripts/myslurm_{org}','w') as f2:
         f2.write(cmd)
@@ -45,7 +45,7 @@ for org in orgs:
 #SBATCH --error statistics_log/{org}_err\n\
 #SBATCH --output statistics_log/{org}_out\n\
 eval "$(conda shell.bash hook)"\n\
-conda activate CONDAHOMEDIR/miniconda3/envs/snakemake\n\
+conda activate /homes/biertank/karl//miniconda3/envs/snakemake\n\
 {first}"""
     with open(f'slurm_scripts/myslurm_{org}','w') as f2:
         f2.write(cmd)

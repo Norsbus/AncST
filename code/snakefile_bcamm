@@ -53,7 +53,8 @@ rule blast_and_clasp_iteratively:
             err = f"{work_dir}/logs/bcamm/{{orgs_tuple}}/{{file}}_err",
             out = f"{work_dir}/logs/bcamm/{{orgs_tuple}}/{{file}}_out"
      shell:
-            f'{code_dir}/bcamm.py {{wildcards.orgs_tuple}} {{wildcards.file}} {{params.ws_anchor_making}} 1> {{log.out}} 2> {{log.err}} {work_dir} && awk \'{{{{ if ($1 != "#" && $8>40) print }}}}\' {work_dir}/clasp_out_forward/{{wildcards.orgs_tuple}}/{{wildcards.file}} > {work_dir}/clasp_out_forward/{{wildcards.orgs_tuple}}/{{wildcards.file}}_awk && awk \'{{{{ if ($1 != "#" && $8>40) print }}}}\' {work_dir}/clasp_out_reverse/{{wildcards.orgs_tuple}}/{{wildcards.file}} > {work_dir}/clasp_out_reverse/{{wildcards.orgs_tuple}}/{{wildcards.file}}_awk'
+            #f'{code_dir}/bcamm.py {{wildcards.orgs_tuple}} {{wildcards.file}} {{params.ws_anchor_making}} 1> {{log.out}} 2> {{log.err}} {work_dir} && awk \'{{{{ if ($1 != "#" && $8>40) print }}}}\' {work_dir}/clasp_out_forward/{{wildcards.orgs_tuple}}/{{wildcards.file}} > {work_dir}/clasp_out_forward/{{wildcards.orgs_tuple}}/{{wildcards.file}}_awk && awk \'{{{{ if ($1 != "#" && $8>40) print }}}}\' {work_dir}/clasp_out_reverse/{{wildcards.orgs_tuple}}/{{wildcards.file}} > {work_dir}/clasp_out_reverse/{{wildcards.orgs_tuple}}/{{wildcards.file}}_awk'
+            f'{code_dir}/bcamm.py {{wildcards.orgs_tuple}} {{wildcards.file}} {{params.ws_anchor_making}} {work_dir} && awk \'{{{{ if ($1 != "#" && $8>40) print }}}}\' {work_dir}/clasp_out_forward/{{wildcards.orgs_tuple}}/{{wildcards.file}} > {work_dir}/clasp_out_forward/{{wildcards.orgs_tuple}}/{{wildcards.file}}_awk && awk \'{{{{ if ($1 != "#" && $8>40) print }}}}\' {work_dir}/clasp_out_reverse/{{wildcards.orgs_tuple}}/{{wildcards.file}} > {work_dir}/clasp_out_reverse/{{wildcards.orgs_tuple}}/{{wildcards.file}}_awk'
 
 rule parse:
      input:
@@ -65,8 +66,9 @@ rule parse:
             "snakemake"
      params:
             ws_anchor_making = ws_anchor_making
-     log: 
-            err = f"{work_dir}/logs/parse_bcamm/{{orgs_tuple}}/{{file}}_err",
-            out = f"{work_dir}/logs/parse_bcamm/{{orgs_tuple}}/{{file}}_out"
+     #log: 
+     #       err = f"{work_dir}/logs/parse_bcamm/{{orgs_tuple}}/{{file}}_err",
+     #       out = f"{work_dir}/logs/parse_bcamm/{{orgs_tuple}}/{{file}}_out"
      shell:
-            f'{code_dir}/parse_bcamm.py {{wildcards.orgs_tuple}} {{wildcards.file}} {{params.ws_anchor_making}} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/{{wildcards.orgs_tuple}}_parse_bcamm_done_{{wildcards.file}}'
+            #f'{code_dir}/parse_bcamm.py {{wildcards.orgs_tuple}} {{wildcards.file}} {{params.ws_anchor_making}} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/{{wildcards.orgs_tuple}}_parse_bcamm_done_{{wildcards.file}}'
+            f'{code_dir}/parse_bcamm.py {{wildcards.orgs_tuple}} {{wildcards.file}} {{params.ws_anchor_making}} {work_dir} && touch {work_dir}/touch/{{wildcards.orgs_tuple}}_parse_bcamm_done_{{wildcards.file}}'

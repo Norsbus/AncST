@@ -28,7 +28,7 @@ with open('singles_out/contig_number_mapping.pickle','wb') as f:
     pickle.dump(contig_number_mapping,f)
 
 for ref in refs:
-    run(f'./single_scaff.py {ref} {target} 1>singles_out/out_single_scaff_ref_{ref}.txt',shell = True)
+    run(f'./single_scaff.py {ref} {target} 1>singles_out/out_single_{target}_scaff_ref_{ref}.txt',shell = True)
 
 run(f'./merge_singles_for_blossom.py --refs {refs_list_str} --target {target}',shell = True)
 

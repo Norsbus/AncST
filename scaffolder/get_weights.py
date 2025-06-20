@@ -21,10 +21,11 @@ for ref in refs:
         anchor_map = pickle.load(f)
     for i,d in anchor_map.items():
         if target in d['matches']:
-            if d['matches'][target]['meta']['multiple matches out of tolerance range'] == 1 or d['matches'][target]['meta']['matches have ambiguous matches (tolerance/chromosome out of range)'] == 1:
-                continue
-            for j,bib_m in d['matches'][target]['matches'].items():
-                aligned_len += bib_m[f'hit coordinates in {target} candidate'][1] - bib_m[f'hit coordinates in {target} candidate'][0]
+            if 'matches' in d['matches'][target]:
+                if d['matches'][target]['meta']['multiple matches out of tolerance range'] == 1 or d['matches'][target]['meta']['matches have ambiguous matches (tolerance/chromosome out of range)'] == 1:
+                    continue
+                for j,bib_m in d['matches'][target]['matches'].items():
+                    aligned_len += bib_m[f'hit coordinates in {target} candidate'][1] - bib_m[f'hit coordinates in {target} candidate'][0]
     weights[ref] = aligned_len
 
 

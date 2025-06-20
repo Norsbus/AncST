@@ -42,4 +42,5 @@ rule update_compared:
      conda:
             "snakemake"
      shell:
-            f'{code_dir}/update_compared.py {{wildcards.org}} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/update_compared_done_{{wildcards.org}}'
+            #f'{code_dir}/update_compared.py {{wildcards.org}} 1> {{log.out}} 2> {{log.err}} {work_dir} && touch {work_dir}/touch/update_compared_done_{{wildcards.org}}'
+            f'{code_dir}/update_compared.py {{wildcards.org}} {work_dir} && touch {work_dir}/touch/update_compared_done_{{wildcards.org}}'

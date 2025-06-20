@@ -32,7 +32,7 @@ for org_tuple in otto:
 #SBATCH --error logs/{org_tuple}_write_less.err\n\
 #SBATCH --output logs/{org_tuple}_write_less.out\n\
 eval "$(conda shell.bash hook)"\n\
-conda activate CONDAHOMEDIR/miniconda3/envs/snakemake\n\
+conda activate /homes/biertank/karl//miniconda3/envs/snakemake\n\
 {first}"""
     with open(f'slurm_scripts/myslurm_{org_tuple}_write_less','w') as f2:
         f2.write(cmd)

@@ -128,9 +128,9 @@ def exe(org_tuple):
 #with open('orgs_tuple_to_bcamm','rb') as f:
 #    otto = pickle.load(f)
 
-work_dir = 'HOMEDIR/insects/stable_synteny/template'
-code_dir = 'HOMEDIR/insects/stable_synteny/code'
-anchor_dir = 'HOMEDIR/insects/stable_synteny/anchors'
+work_dir = '/scr/k80san/karl//insects/stable_synteny/template'
+code_dir = '/scr/k80san/karl//insects/stable_synteny/code'
+anchor_dir = '/scr/k80san/karl//insects/stable_synteny/anchors'
 orgs12 = []
 flies = []
 morgs = []
@@ -149,7 +149,7 @@ for org1 in orgs12:
         orgs_tuple = org1 + '---' + org2
         if not os.path.isdir(f'{work_dir}/clasp_out_forward/{orgs_tuple}'):
             orgs_tuple = org2 + '---' + org1
-        #if not os.path.isfile(f'HOMEDIR/insects/stable_synteny/template/blastdbs/anchor_candidates_{orgs_tuple}_forward.nsq'):
+        #if not os.path.isfile(f'/scr/k80san/karl//insects/stable_synteny/template/blastdbs/anchor_candidates_{orgs_tuple}_forward.nsq'):
         otto.append(orgs_tuple)
 print(len(otto))
 for i,org1 in enumerate(orgs12[:-1]):
@@ -159,7 +159,7 @@ for i,org1 in enumerate(orgs12[:-1]):
         orgs_tuple = org1 + '---' + org2
         if not os.path.isdir(f'{work_dir}/clasp_out_forward/{orgs_tuple}'):
             orgs_tuple = org2 + '---' + org1
-        #if not os.path.isfile(f'HOMEDIR/insects/stable_synteny/template/blastdbs/anchor_candidates_{orgs_tuple}_forward.nsq'):
+        #if not os.path.isfile(f'/scr/k80san/karl//insects/stable_synteny/template/blastdbs/anchor_candidates_{orgs_tuple}_forward.nsq'):
         otto.append(orgs_tuple)
 print(len(otto))
 

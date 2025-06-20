@@ -43,7 +43,7 @@ if __name__ == "__main__":
             for d in ds:
                 to_make.append(f'{d}')
             make_directories(to_make)
-            per_org = ['genmap_out']
+            per_org = ['genmap_out','macle_out']
             to_make = []
             for d in per_org:
                 for org in orgs:

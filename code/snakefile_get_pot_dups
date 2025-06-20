@@ -1,0 +1,55 @@
+import os
+import pathlib
+
+code_dir = config['code_dir']
+
+work_dir = config['work_dir']
+
+root = config['root_dir']
+
+# env variable
+os.environ['TMPDIR'] = f'{root}/utils/tmp'
+
+envvars:
+    "TMPDIR",
+
+with open(f"{work_dir}/dups_params.txt","r") as f:
+    line = f.read()
+    params = line.split()
+    genome,K,E,L,I,P,XXX = params[:7]
+
+
+# organisms to comput for
+orgs = []
+with open(f"{work_dir}/orgs","r") as f:
+    for line in f:
+        orgs.append(line.strip())
+
+# snakerules
+rule all:
+	input:
+            expand(f"{work_dir}/dups/{{organism}}",organism=orgs)
+
+rule get_dups:
+    input: 
+            f"{root}/utils/genomes/{{organism}}.fasta"
+    log: 
+            err = f"{work_dir}/logs/dups/{{organism}}.err",
+            out = f"{work_dir}/logs/dups/{{organism}}.out"
+    output: 
+            f"{work_dir}/dups/{{organism}}",
+    params:
+            k = K,
+            e = E,
+            l = L,
+            i = I,
+            p = P
+    resources:
+            cpus_per_task=1,
+            mem_mb=64000
+    threads:
+            1
+    conda:
+            "snakemake"
+    shell: 
+            f'{code_dir}/find_dups.py {{wildcards.organism}} {root}/utils/genmap_out/{{wildcards.organism}}/{K}_{E}.freq16 {{params.l}} {{params.i}} {{params.p}} 1> {{log.out}} 2> {{log.err}} {work_dir}'
