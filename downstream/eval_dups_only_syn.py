@@ -31,15 +31,7 @@ if __name__ == "__main__":
                     new_bib[i]['matches'][org2]['dups_matches'] = {}
                     local_iss = iss[bisect_left(iss,i-margin):min(len(iss), bisect_left(iss,i+(bib['end'] - bib['start'])+margin))]
                     syntenic = []
-                    #pprint(bib)
-                    #print('i',i)
-                    #print(local_iss)
-                    #print(org2)
                     for j,m in bib2['dups_matches'].items():
-                        #print('j',j)
-                        # has to be significant alignment
-                        #if m[f'hit coordinates in (own) {org} candidate'][1] - m[f'hit coordinates in (own) {org} candidate'][0] < (bib['end'] - bib['start'])/4 and m['match score'] < 200:
-                        #    continue
                         syn_matches = [0,0]
                         ali_len = 0
                         for ii in local_iss:
@@ -47,8 +39,6 @@ if __name__ == "__main__":
                                 continue
                             if org2 in am2[ii]['matches'] and 'matches' in am2[ii]['matches'][org2] and am2[ii]['matches'][org2]['meta']['multiple matches out of tolerance range'] != 1:
                                 for jj,mm in am2[ii]['matches'][org2]['matches'].items():
-                                    #print(jj)
-                                    #pprint(mm)
                                     if jj == j:
                                         continue
                                     if abs(jj-j) < tol:
@@ -57,10 +47,8 @@ if __name__ == "__main__":
                                             syn_matches[0] += mm['match score']
                                         else:
                                             syn_matches[1] += mm['match score']
-                        if syn_matches[0] >= 500 and syn_matches[1] >= 500: #and ali_len > 1000:
+                        if syn_matches[0] >= 500 and syn_matches[1] >= 500:
                             syntenic.append(j)
-                    #print(syn_matches)
-                    #input()
                     if len(syntenic) > 0:
                         if 'syntenic' not in new_bib[i]['matches'][org2]['dups_matches']:
                             new_bib[i]['matches'][org2]['dups_matches']['syntenic'] = set()

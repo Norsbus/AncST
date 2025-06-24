@@ -53,7 +53,7 @@ if __name__ == "__main__":
         for line in f:
             orgs.append(line.strip())
     for org in orgs:
-        genomes[org] = get_genome('HOMEDIR/methodenpaper/test_pipeline/stable_synteny/utils/genomes/',org)
+        genomes[org] = get_genome('/scr/k80san/karl//methodenpaper/test_pipeline/stable_synteny/utils/genomes/',org)
         with open(f'anchors_from_methodenpaper_test_pipeline/aligned/{org}','rb') as f2:
             aligned[org] = pickle.load(f2)
     ids = []

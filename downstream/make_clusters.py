@@ -5,7 +5,6 @@ from statistics import mean,stdev,median
 from numpy import quantile
 from subprocess import run
 from bisect import bisect_left
-from pprint import pprint
 from statistics import mean
 
 """ collecting clusters going through all matches but in the end only saving wanted ones"""
@@ -32,10 +31,6 @@ def reconcile_overlapping():
                 idx2 = l.index(y[-1])
                 no_eles = idx2-idx1+1
                 containing.append(no_eles)
-                #pprint(clusters[cluster_i_bib[org][x]])
-                #pprint(clusters[cluster_i_bib[org][l[i-1]]])
-                #to_merge.add(())
-                print(cluster_i_bib[org][x],cluster_i_bib[org][l[i-1]])
                 cases += 1
                 clusters_involved.add(cluster_i_bib[org][x])
                 clusters_involved_glob.add(cluster_i_bib[org][x])
@@ -43,9 +38,6 @@ def reconcile_overlapping():
                 seen[cluster_i_bib[org][x]].add(x)
             else:
                 seen[cluster_i_bib[org][x]] = set([x])
-        print(org,len(l),len(clusters_involved))
-    print(len(clusters_involved_glob))
-    print(mean(containing))
 
     return 0
 
@@ -162,9 +154,6 @@ def rec_collect_matches(start_org,start_i):
     orig_matches = get_matches(start_org,start_i,out)
     new = set()
     diff = set()
-    #print('-------------------------------')
-    #print(f'first matches from {start_org} {start_i}')
-    #pprint(orig_matches)
     out_of_range = 0
     for org2,s in orig_matches.items():
         iss = sorted([x[0] for x in s])
@@ -176,10 +165,7 @@ def rec_collect_matches(start_org,start_i):
                 break
         if out_of_range == 1:
             out_of_range = 0
-            print(f'{org2} out of range 1')
-            print(iss)
             iss,out_l = which_iss(org2,iss,bib,max_range)
-            print(iss,out_l)
             for outer in out_l: 
                 out[org2][outer] = 1
             if org2 in bib:
@@ -217,8 +203,6 @@ def rec_collect_matches(start_org,start_i):
             else:
                 rolling_orientation = 'forward'
             matches = get_matches(org2,j,out)
-            #print(f'next matches from {org2} {j}')
-            #print(matches)
             for org22,s in matches.items():
                 iss = [x[0] for x in s]
                 if org22 in bib:
@@ -232,10 +216,7 @@ def rec_collect_matches(start_org,start_i):
                         break
                 if out_of_range == 1:
                     out_of_range = 0
-                    print(f'{org22} out of range 2')
-                    print(iss)
                     iss,out_l = which_iss(org22,iss,bib,max_range)
-                    print(iss,out_l)
                     for outer in out_l: 
                         out[org22][outer] = 1
                     if org22 in bib:
@@ -282,8 +263,6 @@ def rec_collect_matches(start_org,start_i):
                 not_valid +=1
                 break
     for o in to_look:
-        print(f'{o} out of range 3')
-        print(sorted(list(bib[o])))
         del bib[o]
     if len(bib) > 0:
         return(bib,orientations)
@@ -312,9 +291,6 @@ if __name__ == "__main__":
         cluster_i_bib[org] = {}
 
     for org in orgs:
-        print('=========')
-        print('///',org,'///')
-        print(len(am[org]))
         for i,bib in am[org].items():
             if i in cluster_i_bib[org]:
                 continue
@@ -347,19 +323,6 @@ if __name__ == "__main__":
                 continue
             for o,bib in new_cluster.items():
                 s = bib['matches']
-                #for j in s:
-                #    closest_lower = bisect_left(list(cluster_i_bib[o].keys()),j) - 1
-                #    if closest_lower >= 0:
-                #        print(clusters[cluster_i_bib[o][list(cluster_i_bib[o].keys())[closest_lower]]])
-                #        print(new_cluster)
-                #    else:
-                #        print('smallest element')
-                #    closest_upper = bisect_left(list(cluster_i_bib[o].keys()),j)
-                #    if closest_upper < len(list(cluster_i_bib[o].keys())):
-                #        print(clusters[cluster_i_bib[o][list(cluster_i_bib[o].keys())[closest_upper]]])
-                #        print(new_cluster)
-                #    else:
-                #        print('largest element')
                 for j in s:
                     cluster_i_bib[o][j] = count
             new_cluster['focal_orientation'] = org
@@ -367,28 +330,9 @@ if __name__ == "__main__":
             new_cluster['representative_length'] = rep_length
             clusters[count] = new_cluster
             count += 1
-            #with open(f'single_clusters_max_100000/cluster_{count}','wb') as f:
-            #    pickle.dump(new_cluster,f)
-        print('=========')
-        print(len(cluster_i_bib[org]))
-        print(len(clusters))
-
-
-    #reconcile_overlapping()
 
     counter = {}
     with open(f'clusters','wb') as f:
         pickle.dump(clusters,f)
     with open(f'i_bib','wb') as f:
         pickle.dump(cluster_i_bib,f)
-    for count,cluster in clusters.items():
-        del cluster['representative_score']
-        del cluster['representative_length']
-        del cluster['focal_orientation']
-        if len(cluster) in counter:
-            counter[len(cluster)] += 1
-        else:
-            counter[len(cluster)] = 1
-    for l,c in sorted(counter.items()):
-        print(f'there are {c} clusters with {l} members')
-    print('==================')

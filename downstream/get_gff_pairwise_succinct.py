@@ -14,7 +14,8 @@ if __name__ == "__main__":
     
     with open('ref_org') as f:
         for line in f:
-            ref = line.strip()
+            if len(line) > 0 and line[0] != '#':
+                ref = line.strip()
     
     with open('mapping_pickle','rb') as f:
         mapping = pickle.load(f)

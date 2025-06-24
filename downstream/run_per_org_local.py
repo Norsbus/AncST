@@ -15,5 +15,5 @@ skip_some = False
 
 for org in orgs:
     print(org)
-    cmd = f"./compress_maps_and_ignore_multis_with_dups.py {org} {anchor_dir} && touch touch/compressed_{org}_done"
+    cmd = f"./compress_maps_and_ignore_multis.py {org} {anchor_dir} && touch touch/compressed_{org}_done"
     run(cmd.split())

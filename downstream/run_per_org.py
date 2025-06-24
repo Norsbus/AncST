@@ -20,11 +20,11 @@ for org in orgs:
 #SBATCH -e slurm_log/{org}.err\n\
 #SBATCH -o slurm_log/{org}.out\n\
 #SBATCH --job-name={org}\n\
-#SBATCH --cpus-per-task=1\n\
-#SBATCH --mem=16000\n\
+#SBATCH --cpus-per-task=5\n\
+#SBATCH --mem=64000\n\
 #SBATCH --time=7-00:00:00\n\
 \n\
-    ./compress_maps.py {org} {anchor_dir} && touch touch/compressed_{org}_done"""
+    ./compress_maps_and_ignore_multis_with_dups.py {org} {anchor_dir} && touch touch/compressed_{org}_done"""
     with open(f'slurm_job_scripts/myslurm_{org}','w') as f2:
         f2.write(cmd)
     if skip_some and counter_skip >= 0:
@@ -45,5 +45,5 @@ for org in orgs:
     sleep(1)
 
 for org in orgs:
-    while not os.path.exists(f'touch/compressed_{org}_done'):
+    while not os.path.exists(f'compressed_maps_multis_to_one/{org}'):
         sleep(10)

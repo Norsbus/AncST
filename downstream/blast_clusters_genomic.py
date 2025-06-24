@@ -126,7 +126,7 @@ def check_cluster(c_id):
 
 if __name__ == "__main__":
 
-    db_path = 'HOMEDIR/methodenpaper/test_pipeline/stable_synteny/utils/blastdbs/'
+    db_path = '/scr/k80san/karl//methodenpaper/test_pipeline/stable_synteny/utils/blastdbs/'
     
     with open('clusters_with_region_blast_clasp_results','rb') as f:
         clusters = pickle.load(f)
