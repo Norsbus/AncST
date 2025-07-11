@@ -17,7 +17,7 @@ all_anchors_gff = open('gff/all_anchors.gff3','w')
 all_align_gff = open('gff/all_alignments.gff3','w')
 for org in orgs:
     align_counter = 1
-    with open(anchor_dir+f'/aligned/{org}','rb') as f:
+    with open(anchor_dir+f'/aligned/{org}_with_syn_eval','rb') as f:
         anchors = pickle.load(f)
     anchors_gff = open(f'gff/anchors_{org}','w')
     align_gff = open(f'gff/alignments_{org}','w')
