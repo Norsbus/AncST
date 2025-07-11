@@ -3,9 +3,6 @@
 This project provides a pipeline and auxiliary code to find potential synteny anchor candidates from genomes and making pairwise alignments. Those can then be used by downstream programmes to study macro- and microsynteny.
 It is only a prototype version at the moment: works in principle; almost certainly needs programming skills and patience; bioinformatics experience helps.
 
-## Webserver/Precomputed Anchors
-There is an automated webserver for anchor computation as well as precomputed datasets (anchors + utility scripts) available at [http://anchored.bioinf.uni-leipzig.de:8080/](http://anchored.bioinf.uni-leipzig.de:8080/).
-
 ## Description
 
 This project can roughly be subdivided into 2 main features:
@@ -26,7 +23,6 @@ This project can roughly be subdivided into 2 main features:
 
 ### Installing
 
-* make sure you are running on a slurm cluster or prepare to be brave and debug the local verion (more below) for your system
 * install the python packages in requirements.txt
 
 ### Executing program
@@ -34,8 +30,8 @@ This project can roughly be subdivided into 2 main features:
 1. you need to prepare some things:
 * some file paths need to be added (your home, not really important, just add the parent directory of the repo; and your conda home where the envrionment you made with requirements is located (see above)). replace accordingly and run (order of commands is important):
 ```
-grep -rlZ "CONDAHOMEDIR" . | xargs -0 sed -i 's#CONDAHOMEDIR#your\_conda\_home#g'
-grep -rlZ "HOMEDIR" . | xargs -0 sed -i 's#HOMEDIR#your\_home#g'
+grep -rlZ "/homes/biertank/karl/" . | xargs -0 sed -i 's#/homes/biertank/karl/#your\_conda\_home#g'
+grep -rlZ "/scr/k80san/karl/" . | xargs -0 sed -i 's#/scr/k80san/karl/#your\_home#g'
 ```
 * put the genomes in a file called "orgs" with each genome's name on one line (without suffix fa/fasta/whatever). this file should exist in the directories utils,utils/util\_code and template
 * go to utils and execute:

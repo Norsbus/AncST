@@ -10,5 +10,6 @@ run('cp -r README_utils replace_names.py mapping get_mapping.py clasp.x find_pot
 run('cp -r README_dialign dialign.homology make_anc.py out/dialign',shell=True)
 run('cp -r README_custom draw_simple.py draw_verbose.py pairwise_alignments_table get_syn_regions.py out/custom',shell=True)
 run('cp -r README_iadhore adhore_config adhore_pairwise.table adhore_gene_lists get_pairwise_orthologies_of_custom_elements.py put_coords_into_gene_lists.py out/i-ADHoRe',shell=True)
-run('cp -r README_scripts eval_dups_only_syn.py add_dups_to_anchors.py make_dup_free_ams.py make_chr_and_org_mapping_for_gff.py compress_maps_and_ignore_multis_with_dups.py get_gff_pairwise_succinct.py make_pw_table_from_aligned.py make_clusters.py out/scripts_which_produced_these_results',shell=True)
+run('cp -r README_scripts make_gff3.py eval_dups_only_syn.py add_dups_to_anchors.py make_dup_free_ams.py make_chr_and_org_mapping_for_gff.py compress_maps_and_ignore_multis_with_dups.py get_gff_pairwise_succinct.py make_pw_table_from_aligned.py make_clusters.py out/scripts_which_produced_these_results',shell=True)
+run(f'cp -r README_gff gff out',shell=True)
 run('chmod -R 755 out',shell=True)

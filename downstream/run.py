@@ -13,4 +13,5 @@ run(f'rm -rf compressed_maps_multis_to_one && mkdir compressed_maps_multis_to_on
 run(f'./run_per_org.py {anchor_dir}',shell=True)
 run(f'./get_gff_pairwise_succinct.py',shell=True)
 run(f'./make_pw_table_from_aligned.py {anchor_dir}',shell=True)
+run(f'./make_gff3.py {anchor_dir}',shell=True)
 run('./cp_multis_to_one.py',shell=True)

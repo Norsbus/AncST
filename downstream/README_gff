@@ -1,0 +1,1 @@
+- here are gff3 files for anchors and alignments (there the first coordinates refer to the chromosome position as defined in gff3 and the Target=... match only describes local hit coordinates for the second anchor with the respective ID
