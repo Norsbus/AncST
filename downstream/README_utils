@@ -1,3 +1,5 @@
+- here are some util scripts and meta data (further described below) and the anchors in python pickles with verbose info ("anchors") and succinct info ("compressed_maps_multis_to_one")
+
 1. put a protein or nucleotide sequence that you want to find orthologues for in a fasta file
 2. put a list of all organisms to search for homologs in a file named "orgs". one organism per line
 3. the genomes for the organisms in orgs have to be accessible in a path where they are named:
