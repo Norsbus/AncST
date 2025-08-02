@@ -318,7 +318,7 @@ def combine_and_filter_new_ones(idx,bib=False):
                 if idx[i] == seqlen[pos_tmp]:
                     pos_tmp += 1
                 ident_tmp = seqids[pos_tmp]
-                while ident_tmp == ident1:
+                while ident_tmp == ident1 and i < len(idx)-1:
                     i += 1
                     pos_tmp = bisect_left(seqlen,idx[i])
                     if idx[i] == seqlen[pos_tmp]:
@@ -339,7 +339,7 @@ def combine_and_filter_new_ones(idx,bib=False):
                 if idx[i] == seqlen[pos_tmp]:
                     pos_tmp += 1
                 ident_tmp = seqids[pos_tmp]
-                while ident_tmp == ident1:
+                while ident_tmp == ident1 and i < len(idx)-1:
                     i += 1
                     pos_tmp = bisect_left(seqlen,idx[i])
                     if idx[i] == seqlen[pos_tmp]:
@@ -357,7 +357,7 @@ def combine_and_filter_new_ones(idx,bib=False):
                 if idx[i] == seqlen[pos_tmp]:
                     pos_tmp += 1
                 ident_tmp = seqids[pos_tmp]
-                while ident_tmp == ident1:
+                while ident_tmp == ident1 and i < len(idx)-1:
                     i += 1
                     pos_tmp = bisect_left(seqlen,idx[i])
                     if idx[i] == seqlen[pos_tmp]:
