@@ -1073,7 +1073,7 @@ if __name__ == "__main__":
     for s1 in best1:
         for i in s1:
             idx.add(i)
-    for s2 in idx2:
+    for s2 in best2:
         for i in s2:
             idx.add(i)
 
