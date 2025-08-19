@@ -41,10 +41,8 @@ else:
     with open('singles_out/contig_number_mapping.pickle','wb') as f:
         pickle.dump(contig_number_mapping,f)
 
-if target_genome == 'human_chopped':
-    ref_genome_name = ref_genome+'_vs_human_chopped'
-else:
-    ref_genome_name = ref_genome
+
+ref_genome_name = ref_genome
 
 with open(anchors_path+f'/{ref_genome_name}','rb') as f:
     anchors = pickle.load(f)
