@@ -31,13 +31,16 @@ for ref in refs:
     if aligned_len > max_w:
         max_w = aligned_len
 
-factor = 1
 while max_w > 1e5:
+    print(max_w)
     for ref in weights:
-        weights[ref] = int(aligned_len/10)
+        if int(weights[ref]) == int(max_w):
+            max_w = int(max_w/10)
+        weights[ref] = int(weights[ref]/10)
         if weights[ref] < 1:
             weights[ref] = 1
 
+
 with open('ref_weights.txt','w') as f:
     for ref,aligned_len in weights.items():
-        f.write(f'{ref}\t{int(aligned_len/factor)}\n')
+        f.write(f'{ref}\t{int(aligned_len)}\n')
