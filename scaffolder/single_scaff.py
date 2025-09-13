@@ -64,9 +64,9 @@ for i in iss:
                 mapping_contig_chromo[chromo2] = {}
             if chromo not in mapping_contig_chromo[chromo2]:
                 mapping_contig_chromo[chromo2][chromo] = 0
-            mapping_contig_chromo[chromo2][chromo] += 1
+            mapping_contig_chromo[chromo2][chromo] += match_bib['match score']
             oris = match_bib['match is on other strand in other genome']
-            orders_others[target_genome][chromo].append(chromo2)
+            orders_others[target_genome][chromo].append((chromo2,match_bib['match score']))
             if oris==0:
                 oris_others[target_genome][chromo][chromo2].append('forward')
             else:
@@ -116,10 +116,10 @@ for ref in small_meta[ref_genome][0]:
     anything_valid = 0
     new_scaffold_len = 0
     taken = []
-    for x in c:
+    for x,score in c:
         if x not in contig_appearance_counter:
             contig_appearance_counter[x] = 0
-        contig_appearance_counter[x] += 1
+        contig_appearance_counter[x] += score
         if x not in written and simple_map[x][0] == ref and contig_appearance_counter[x] >= simple_map[x][1]/2:
             anything_valid = 1
             written[x] = 1
@@ -158,7 +158,7 @@ with open(f'singles_out/contig_order_target_{target_genome}_ref_{ref_genome}.out
         if ref not in new_orders_others[targets[0]]:
             continue
         c = new_orders_others[targets[0]][ref]
-        if len(c) == 0:
+        if len(c) < 2:
             continue
         f.write(f'>scaffold_{count}\n')
         for x in c:
@@ -191,7 +191,7 @@ with open(f'singles_out/blossom_v_infile_target_{target_genome}_ref_{ref_genome}
             continue
         c = new_orders_others[targets[0]][ref]
         for enu,x in enumerate(c[:-1]):
-            if simple_map[x][0] == ref and simple_map[c[enu+1]][0] == ref and x in limited and c[enu+1] in limited:
+            if simple_map[x][0] == ref and simple_map[c[enu+1]][0] == ref: # and x in limited and c[enu+1] in limited:
                 ori = orientations[x][ref]
                 number1 = contig_number_mapping[x]
                 head1 = number1 + '1'
