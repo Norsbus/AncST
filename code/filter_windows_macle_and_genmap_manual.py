@@ -995,6 +995,7 @@ if __name__ == "__main__":
         wanted_genome_size = int(int(paras[2])/100*genome_size)
 
         Cm_values = get_Cm_values(len_lmers,interval)
+        Cm_value = 1e6
         tot = 0
         iii = 0
         while tot < wanted_genome_size:
@@ -1030,6 +1031,8 @@ if __name__ == "__main__":
         len_lmers = int(paras[2])
         interval = int(paras[3])
         wanted_genome_size = int(int(paras[4])/100*genome_size)
+        if wanted_genome_size == 0:
+            continue
         infile = f'{work_dir}/../utils/genmap_out/{org}/{k}_{e}.freq16'
         x = get_low_count_windows(org,infile,outfile,k,e,len_lmers,interval,percentile,wanted_genome_size)
         for iii in x:
