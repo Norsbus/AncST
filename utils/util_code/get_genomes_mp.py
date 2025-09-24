@@ -19,5 +19,5 @@ with open('orgs','r') as f:
             accession = line.strip()
             orgs.append(accession)
 
-with mp.Pool(processes=30) as pool:
+with mp.Pool(processes=1) as pool:
     res = pool.map_async(download,orgs).get()

@@ -90,7 +90,7 @@ with open('compute_anchors_for') as f:
 start = time()
 done = 0
 for o in caf:
-    if os.path.isfile(f'/scr/k80san/karl/AncST_server/AncST/utils/macle_indices/{o}'):
+    if os.path.isfile(f'../utils/macle_indices/{o}'):
         done += 1
 run(f'./macle_index_slurm.py {work_dir}',shell=True)
 out = check_output('ls touch | grep macle_index_done  | wc -l',shell=True)
@@ -108,7 +108,7 @@ start = time()
 missing = 0
 for o in caf:
     for para in macle_paras[o]:
-        if not os.path.isfile(f'/scr/k80san/karl/AncST_server/AncST/utils/macle_out/{o}/{para[0]}_{para[1]}.txt'):
+        if not os.path.isfile(f'../utils/macle_out/{o}/{para[0]}_{para[1]}.txt'):
             missing += 1
 run(f'./macle_Cm_slurm.py {work_dir}',shell=True)
 out = check_output('ls touch | grep macle_Cm_done  | wc -l',shell=True)
@@ -125,7 +125,7 @@ start = time()
 run(f'./genmap_index_slurm.py {work_dir}',shell=True)
 done = 0
 for o in caf:
-    if os.path.isdir(f'/scr/k80san/karl/AncST_server/AncST/utils/genmap_indices/{o}'):
+    if os.path.isdir(f'../utils/genmap_indices/{o}'):
         done += 1
 out = check_output('ls touch | grep index_done  | wc -l',shell=True)
 out2 = check_output('ls touch | grep macle_index_done  | wc -l',shell=True)
@@ -143,7 +143,7 @@ start = time()
 missing = 0
 for o in caf:
     for para in k_e[o]:
-        if not os.path.isfile(f'/scr/k80san/karl/AncST_server/AncST/utils/genmap_out/{o}/{para[0]}_{para[1]}.freq16'):
+        if not os.path.isfile(f'../utils/genmap_out/{o}/{para[0]}_{para[1]}.freq16'):
             missing += 1
 run(f'./genmap_map_slurm.py {work_dir}',shell=True)
 out = check_output('ls touch | grep map_done  | wc -l',shell=True)
@@ -160,7 +160,7 @@ start = time()
 
 done = 0
 for o in caf:
-    if os.path.isdir(f'/scr/k80san/karl/AncST_server/AncST/utils/blastdbs/{o}.nsq') and os.path.isdir(f'/scr/k80san/karl/AncST_server/AncST/utils/small_meta/{o}') and os.path.isdir(f'/scr/k80san/karl/AncST_server/AncST/utils/metadata_genomes/{o}'):
+    if os.path.isdir(f'../utils/blastdbs/{o}.nsq') and os.path.isdir(f'../utils/small_meta/{o}') and os.path.isdir(f'../utils/metadata_genomes/{o}'):
         done += 1
 run(f'./run_metadata.py {work_dir}',shell=True)
 out = check_output('ls touch | grep metadata_done  | wc -l',shell=True)
@@ -204,7 +204,7 @@ if no == len(orgs):
 
 #for org in orgs:
 #    if org not in caf:
-#        run(f'cp /scr/k80san/karl/AncST_server/AncST/save_anchor_candidates/{org} /scr/k80san/karl/AncST_server/AncST/anchors/candidates/{org}',shell=True)
+#        run(f'cp ../save_anchor_candidates/{org} ../anchors/candidates/{org}',shell=True)
 
 start = time() 
 run(f'rm -f {work_dir}/.snakemake/locks/*',shell=True)

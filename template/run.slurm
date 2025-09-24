@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=genmap_GCA_030067965.1
-#SBATCH --cpus-per-task=30
-#SBATCH --mem=64000
+#SBATCH --job-name=macle_Cm_GCF_945859705.1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=32000
 #SBATCH --time=3-00:00:00
-#SBATCH --error log/gm_map/stderr_map_GCA_030067965.1
-#SBATCH --output log/gm_map/stdout_map_GCA_030067965.1
+#SBATCH --error log/macle_Cm/stderr_map_GCF_945859705.1
+#SBATCH --output log/macle_Cm/stdout_map_GCF_945859705.1
 eval "$(conda shell.bash hook)"
 conda activate /homes/biertank/karl//miniconda3/envs/snakemake
-genmap map -fl -K 50 -E 4 -I /scr/k80san/karl/AncST_server/AncST/template/../utils/genmap_indices/GCA_030067965.1 -O /scr/k80san/karl/AncST_server/AncST/template/../utils/genmap_out/GCA_030067965.1/50_4 -r && touch touch/GCA_030067965.1_50_4_map_done
+macle -i /scr/k80san/karl/new_AncST_server/AncST/template/../utils/macle_indices/GCF_945859705.1 -w 1000 -k 50 > /scr/k80san/karl/new_AncST_server/AncST/template/../utils/macle_out/GCF_945859705.1/1000_50.txt && touch touch/GCF_945859705.1_1000_50_macle_Cm_done
