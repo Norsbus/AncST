@@ -87,91 +87,91 @@ with open('compute_anchors_for') as f:
     for line in f:
         caf.add(line.strip())
 
-#start = time()
-#done = 0
-#for o in caf:
-#    if os.path.isfile(f'/scr/k80san/karl/AncST_server/AncST/utils/macle_indices/{o}'):
-#        done += 1
-#run(f'./macle_index_slurm.py {work_dir}',shell=True)
-#out = check_output('ls touch | grep macle_index_done  | wc -l',shell=True)
-#idle = int(out.decode().split()[0])
-#print(done,idle,len(caf))
-#while idle+done < len(caf):
-#    sleep(30)
-#    out = check_output('ls touch | grep macle_index_done  | wc -l',shell=True)
-#    idle = int(out.decode().split()[0])
-#passed = time() - start
-#
-#execution_times.write(f'macle idx: {passed}\n')
-#
-#start = time()
-#missing = 0
-#for o in caf:
-#    for para in macle_paras[o]:
-#        if not os.path.isfile(f'/scr/k80san/karl/AncST_server/AncST/utils/macle_out/{o}/{para[0]}_{para[1]}.txt'):
-#            missing += 1
-#run(f'./macle_Cm_slurm.py {work_dir}',shell=True)
-#out = check_output('ls touch | grep macle_Cm_done  | wc -l',shell=True)
-#idle = int(out.decode().split()[0])
-#while idle < missing:
-#    sleep(30)
-#    out = check_output('ls touch | grep macle_Cm_done  | wc -l',shell=True)
-#    idle = int(out.decode().split()[0])
-#passed = time() - start
-#
-#execution_times.write(f'macle Cm: {passed}\n')
-#
-#start = time()
-#run(f'./genmap_index_slurm.py {work_dir}',shell=True)
-#done = 0
-#for o in caf:
-#    if os.path.isdir(f'/scr/k80san/karl/AncST_server/AncST/utils/genmap_indices/{o}'):
-#        done += 1
-#out = check_output('ls touch | grep index_done  | wc -l',shell=True)
-#out2 = check_output('ls touch | grep macle_index_done  | wc -l',shell=True)
-#idle = int(out.decode().split()[0]) - int(out2.decode().split()[0])
-#while idle+done < len(caf):
-#    sleep(30)
-#    out = check_output('ls touch | grep index_done  | wc -l',shell=True)
-#    idle = int(out.decode().split()[0])
-#passed = time() - start
-#
-#execution_times.write(f'genmap indices: {passed}\n')
-#
-#start = time()
-#
-#missing = 0
-#for o in caf:
-#    for para in k_e[o]:
-#        if not os.path.isfile(f'/scr/k80san/karl/AncST_server/AncST/utils/genmap_out/{o}/{para[0]}_{para[1]}.freq16'):
-#            missing += 1
-#run(f'./genmap_map_slurm.py {work_dir}',shell=True)
-#out = check_output('ls touch | grep map_done  | wc -l',shell=True)
-#idle = int(out.decode().split()[0])
-#while idle < missing:
-#    sleep(30)
-#    out = check_output('ls touch | grep map_done  | wc -l',shell=True)
-#    idle = int(out.decode().split()[0])
-#passed = time() - start
-#
-#execution_times.write(f'genmap maps: {passed}\n')
-#
-#start = time()
-#
-#done = 0
-#for o in caf:
-#    if os.path.isdir(f'/scr/k80san/karl/AncST_server/AncST/utils/blastdbs/{o}.nsq') and os.path.isdir(f'/scr/k80san/karl/AncST_server/AncST/utils/small_meta/{o}') and os.path.isdir(f'/scr/k80san/karl/AncST_server/AncST/utils/metadata_genomes/{o}'):
-#        done += 1
-#run(f'./run_metadata.py {work_dir}',shell=True)
-#out = check_output('ls touch | grep metadata_done  | wc -l',shell=True)
-#idle = int(out.decode().split()[0])
-#while idle+done != len(orgs):
-#    sleep(30)
-#    out = check_output('ls touch | grep metadata_done  | wc -l',shell=True)
-#    idle = int(out.decode().split()[0])
-#passed = time() - start
-#
-#execution_times.write(f'metadata: {passed}\n')
+start = time()
+done = 0
+for o in caf:
+    if os.path.isfile(f'/scr/k80san/karl/AncST_server/AncST/utils/macle_indices/{o}'):
+        done += 1
+run(f'./macle_index_slurm.py {work_dir}',shell=True)
+out = check_output('ls touch | grep macle_index_done  | wc -l',shell=True)
+idle = int(out.decode().split()[0])
+print(done,idle,len(caf))
+while idle+done < len(caf):
+    sleep(30)
+    out = check_output('ls touch | grep macle_index_done  | wc -l',shell=True)
+    idle = int(out.decode().split()[0])
+passed = time() - start
+
+execution_times.write(f'macle idx: {passed}\n')
+
+start = time()
+missing = 0
+for o in caf:
+    for para in macle_paras[o]:
+        if not os.path.isfile(f'/scr/k80san/karl/AncST_server/AncST/utils/macle_out/{o}/{para[0]}_{para[1]}.txt'):
+            missing += 1
+run(f'./macle_Cm_slurm.py {work_dir}',shell=True)
+out = check_output('ls touch | grep macle_Cm_done  | wc -l',shell=True)
+idle = int(out.decode().split()[0])
+while idle < missing:
+    sleep(30)
+    out = check_output('ls touch | grep macle_Cm_done  | wc -l',shell=True)
+    idle = int(out.decode().split()[0])
+passed = time() - start
+
+execution_times.write(f'macle Cm: {passed}\n')
+
+start = time()
+run(f'./genmap_index_slurm.py {work_dir}',shell=True)
+done = 0
+for o in caf:
+    if os.path.isdir(f'/scr/k80san/karl/AncST_server/AncST/utils/genmap_indices/{o}'):
+        done += 1
+out = check_output('ls touch | grep index_done  | wc -l',shell=True)
+out2 = check_output('ls touch | grep macle_index_done  | wc -l',shell=True)
+idle = int(out.decode().split()[0]) - int(out2.decode().split()[0])
+while idle+done < len(caf):
+    sleep(30)
+    out = check_output('ls touch | grep index_done  | wc -l',shell=True)
+    idle = int(out.decode().split()[0])
+passed = time() - start
+
+execution_times.write(f'genmap indices: {passed}\n')
+
+start = time()
+
+missing = 0
+for o in caf:
+    for para in k_e[o]:
+        if not os.path.isfile(f'/scr/k80san/karl/AncST_server/AncST/utils/genmap_out/{o}/{para[0]}_{para[1]}.freq16'):
+            missing += 1
+run(f'./genmap_map_slurm.py {work_dir}',shell=True)
+out = check_output('ls touch | grep map_done  | wc -l',shell=True)
+idle = int(out.decode().split()[0])
+while idle < missing:
+    sleep(30)
+    out = check_output('ls touch | grep map_done  | wc -l',shell=True)
+    idle = int(out.decode().split()[0])
+passed = time() - start
+
+execution_times.write(f'genmap maps: {passed}\n')
+
+start = time()
+
+done = 0
+for o in caf:
+    if os.path.isdir(f'/scr/k80san/karl/AncST_server/AncST/utils/blastdbs/{o}.nsq') and os.path.isdir(f'/scr/k80san/karl/AncST_server/AncST/utils/small_meta/{o}') and os.path.isdir(f'/scr/k80san/karl/AncST_server/AncST/utils/metadata_genomes/{o}'):
+        done += 1
+run(f'./run_metadata.py {work_dir}',shell=True)
+out = check_output('ls touch | grep metadata_done  | wc -l',shell=True)
+idle = int(out.decode().split()[0])
+while idle+done != len(orgs):
+    sleep(30)
+    out = check_output('ls touch | grep metadata_done  | wc -l',shell=True)
+    idle = int(out.decode().split()[0])
+passed = time() - start
+
+execution_times.write(f'metadata: {passed}\n')
 #
 #
 no_new = {}
@@ -244,10 +244,10 @@ run(f'snakemake --scheduler greedy --conda-frontend conda --use-conda --keep-inc
 passed = time() - start
 execution_times.write(f'match making: {passed}\n')
 
-#start = time() 
-#run(f'./run_checks_multi.py {work_dir} {code_dir} {anchor_dir}',shell=True)
-#passed = time() - start
-#execution_times.write(f'running_checks: {passed}\n')
+start = time() 
+run(f'./run_checks_multi.py {work_dir} {code_dir} {anchor_dir}',shell=True)
+passed = time() - start
+execution_times.write(f'running_checks: {passed}\n')
 
 run('./eval_dups_only_syn.py',shell=True)
 
