@@ -122,11 +122,11 @@ passed = time() - start
 execution_times.write(f'macle Cm: {passed}\n')
 
 start = time()
-run(f'./genmap_index_slurm.py {work_dir}',shell=True)
 done = 0
 for o in caf:
     if os.path.isdir(f'../utils/genmap_indices/{o}'):
         done += 1
+run(f'./genmap_index_slurm.py {work_dir}',shell=True)
 out = check_output('ls touch | grep index_done  | wc -l',shell=True)
 out2 = check_output('ls touch | grep macle_index_done  | wc -l',shell=True)
 idle = int(out.decode().split()[0]) - int(out2.decode().split()[0])
