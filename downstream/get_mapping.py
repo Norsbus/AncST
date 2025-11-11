@@ -6,7 +6,11 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 def get_mapping():
     org_mapping = {}
     chr_mapping = {}
-    with open(dir_path+'/../utils/mapping') as f:
+    if os.path.exists(dir_path+'/../utils/mapping'):
+        ff = dir_path+'/../utils/mapping'
+    elif os.path.exists('mapping'):
+        ff = dir_path+'/mapping'
+    with open(ff) as f:
         org = False
         for line in f:
             if line[0] == '#':

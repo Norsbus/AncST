@@ -1,10 +1,12 @@
-# Importing necessary libraries
+#! /usr/bin/env python3
+
 from Bio import Phylo
 from Bio.Phylo.TreeConstruction import DistanceCalculator
 from Bio.Phylo.TreeConstruction import DistanceTreeConstructor
 from Bio import AlignIO
 from Bio.Phylo.TreeConstruction import DistanceMatrix
 import numpy as np
+import pickle
 
 
 def get_matrix_from_anchors():
