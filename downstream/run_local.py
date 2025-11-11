@@ -3,6 +3,15 @@
 from subprocess import run
 from sys import argv
 
+orgs = set()
+with open('orgs') as f:
+    for line in f:
+        ref_org = line.strip()
+        orgs.add(line.strip())
+orgs = list(orgs)
+with open('ref_org','w') as f:
+    f.write(f'{ref_org}\n')
+
 anchor_dir = argv[1]
 run('chmod +x *py',shell=True)
 run('./make_directories.py',shell=True)
