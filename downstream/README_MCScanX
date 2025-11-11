@@ -6,3 +6,4 @@ run put_coords_into_MCScanX_gff_and_homology.py and run
 like ./MCScanX_h MCScanX_plus_coords_only_relevant
 - you can also run extract_MCScanX_orthologies.py afterwards to make some clusters
 of elements (pretty naively from the MCScanX output collinerity file)
+- produce a phylogeny based on anchor alignemtns involved in collinearity chains with "python3 phylogeny_from_mcscanx.py" if MCScanX.collinearity is available.
