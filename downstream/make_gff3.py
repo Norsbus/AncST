@@ -19,8 +19,8 @@ for org in orgs:
     align_counter = 1
     with open(anchor_dir+f'/aligned/{org}_with_syn_eval','rb') as f:
         anchors = pickle.load(f)
-    anchors_gff = open(f'gff/anchors_{org}','w')
-    align_gff = open(f'gff/alignments_{org}','w')
+    anchors_gff = open(f'gff/anchors_{org}.gff3','w')
+    align_gff = open(f'gff/alignments_{org}.gff3','w')
     for i,bib in anchors.items():
         idd = f'{org}_{i}'
         chromo = bib['chromosome']
