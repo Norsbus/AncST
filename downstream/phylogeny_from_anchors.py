@@ -48,9 +48,24 @@ def get_matrix_from_anchors():
                 else:
                     for k, t in bib['matches'][other].items():
                         loc_dists[i] += (t[1][1] - t[1][0])
+            for j, bib in ams[other].items():
+                if dist_org not in bib['matches']:
+                    continue
+                else:
+                    for k, t in bib['matches'][dist_org].items():
+                        loc_dists[i] += (t[1][1] - t[1][0])
+
         dists = []
-        for d in loc_dists:
-            dists.append(1 - (d / lens[dist_org]))
+        for i in range(0, enu):
+            d = loc_dists[i]
+            org2 = orgs[i]
+            if lens[org] < lens[org2]:
+                dist_org = org
+                other = org2
+            else:
+                dist_org = org2
+                other = org
+            dists.append(1 - (d / (lens[dist_org]+lens[other])))
         matrix.append(dists)
     return matrix, orgs
 
