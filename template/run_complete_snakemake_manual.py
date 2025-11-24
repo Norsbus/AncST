@@ -109,9 +109,10 @@ execution_times.write(f'macle idx: {passed}\n')
 start = time()
 missing = 0
 for o in caf:
-    for para in macle_paras[o]:
-        if not os.path.isfile(f'../utils/macle_out/{o}/{para[0]}_{para[1]}.txt'):
-            missing += 1
+    if o in macle_paras:
+        for para in macle_paras[o]:
+            if not os.path.isfile(f'../utils/macle_out/{o}/{para[0]}_{para[1]}.txt'):
+                missing += 1
 run(f'./macle_Cm_slurm.py {work_dir}',shell=True)
 out = check_output('ls touch | grep macle_Cm_done  | wc -l',shell=True)
 idle = int(out.decode().split()[0])
@@ -144,9 +145,10 @@ start = time()
 
 missing = 0
 for o in caf:
-    for para in k_e[o]:
-        if not os.path.isfile(f'../utils/genmap_out/{o}/{para[0]}_{para[1]}.freq16'):
-            missing += 1
+    if o in k_e:
+        for para in k_e[o]:
+            if not os.path.isfile(f'../utils/genmap_out/{o}/{para[0]}_{para[1]}.freq16'):
+                missing += 1
 run(f'./genmap_map_slurm.py {work_dir}',shell=True)
 out = check_output('ls touch | grep map_done  | wc -l',shell=True)
 idle = int(out.decode().split()[0])
