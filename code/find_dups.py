@@ -169,6 +169,15 @@ if __name__ == "__main__":
         line = f.read()
         if org in line:
             dups_paras.append(line.strip().split()[1:])
+
+    # If organism not in dups_params.txt, create empty dups file and exit
+    if not dups_paras:
+        print(f'No dups parameters found for {org}, creating empty dups file')
+        bib = {}
+        with open(f'{work_dir}/dups/{org}','wb') as f:
+            pickle.dump(bib,f)
+        exit(0)
+
     #k1: k of k-mer counts for initial identification of candidate windows<br>
     #e1: errors allowed in k1-mer counting<br>
     #k2: k of k-mer counts for exclusion of windows according to x2 and y2<br>

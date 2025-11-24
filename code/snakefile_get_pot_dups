@@ -13,11 +13,26 @@ os.environ['TMPDIR'] = f'{root}/utils/tmp'
 envvars:
     "TMPDIR",
 
-with open(f"{work_dir}/dups_params.txt","r") as f:
-    line = f.read()
-    params = line.split()
-    genome,K,E,L,I,P,XXX = params[:7]
-
+# Check if dups_params.txt exists and has content
+# Dups parameters are optional - if missing or empty, use dummy values
+# find_dups.py will create empty dups files for organisms not in dups_params.txt
+dups_params_exist = os.path.isfile(f"{work_dir}/dups_params.txt")
+if dups_params_exist:
+    with open(f"{work_dir}/dups_params.txt","r") as f:
+        content = f.read().strip()
+        if content:
+            params = content.split()
+            if len(params) >= 7:
+                genome,K,E,L,I,P,XXX = params[:7]
+            else:
+                print(f"Warning: dups_params.txt has insufficient parameters, using dummy values")
+                genome,K,E,L,I,P,XXX = "dummy","0","0","0","0","0","0"
+        else:
+            print(f"Warning: dups_params.txt is empty, using dummy values")
+            genome,K,E,L,I,P,XXX = "dummy","0","0","0","0","0","0"
+else:
+    print(f"Warning: dups_params.txt not found, using dummy values")
+    genome,K,E,L,I,P,XXX = "dummy","0","0","0","0","0","0"
 
 # organisms to comput for
 orgs = []
@@ -27,7 +42,7 @@ with open(f"{work_dir}/orgs","r") as f:
 
 # snakerules
 rule all:
-	input:
+    input:
             expand(f"{work_dir}/dups/{{organism}}",organism=orgs)
 
 rule get_dups:
