@@ -40,17 +40,19 @@ with open(f'{work_dir}/genmap_params.txt') as f:
             k_e[genome] = set()
         k_e[genome].add((k,e))
 
-with open(f'{work_dir}/dups_params.txt') as f:
-    for line in f:
-        if '#' in line:
-            continue
-        line = line.strip().split()
-        genome,k,e = line[:3]
-        if genome not in k_e:
-            k_e[genome] = set()
-        k_e[genome].add((k,e))
-        k,e = line[3:5]
-        k_e[genome].add((k,e))
+# Dups parameters are optional
+if os.path.isfile(f'{work_dir}/dups_params.txt'):
+    with open(f'{work_dir}/dups_params.txt') as f:
+        for line in f:
+            if '#' in line:
+                continue
+            line = line.strip().split()
+            genome,k,e = line[:3]
+            if genome not in k_e:
+                k_e[genome] = set()
+            k_e[genome].add((k,e))
+            k,e = line[3:5]
+            k_e[genome].add((k,e))
 
 macle_paras = {}
 macle_paras_no = {}
