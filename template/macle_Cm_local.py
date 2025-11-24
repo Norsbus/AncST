@@ -27,17 +27,19 @@ if __name__ == "__main__":
         for line in f:
             orgs.add(line.strip())
     macle_paras = []
-    with open('macle_params.txt') as f:
-        for line in f:
-            macle_paras.append(line.split())
+    if os.path.isfile('macle_params.txt'):
+        with open('macle_params.txt') as f:
+            for line in f:
+                macle_paras.append(line.split())
     paras = {}
     for para in macle_paras:
-        genome = para[0] 
+        genome = para[0]
         if genome not in paras:
             paras[genome] = set()
-        len_lmers = int(para[1]) 
-        interval = int(para[2]) 
+        len_lmers = int(para[1])
+        interval = int(para[2])
         paras[genome].add((len_lmers,interval))
     for org in orgs:
-        for len_lerms,interval in paras[org]:
-            thread_process(org,len_lmers,interval)
+        if org in paras:
+            for len_lerms,interval in paras[org]:
+                thread_process(org,len_lmers,interval)

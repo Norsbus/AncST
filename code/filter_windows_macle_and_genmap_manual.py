@@ -981,10 +981,11 @@ if __name__ == "__main__":
     ### macle ###
 
     macle_paras = []
-    with open('macle_params.txt') as f:
-        for line in f:
-            if org in line:
-                macle_paras.append(line.strip().split()[1:])
+    if os.path.isfile('macle_params.txt'):
+        with open('macle_params.txt') as f:
+            for line in f:
+                if org in line:
+                    macle_paras.append(line.strip().split()[1:])
     
     idx1 = []
     best1 = []
@@ -1016,10 +1017,11 @@ if __name__ == "__main__":
     ### genmap ###
 
     genmap_paras = []
-    with open('genmap_params.txt') as f:
-        for line in f:
-            if org in line:
-                genmap_paras.append(line.strip().split()[1:])
+    if os.path.isfile('genmap_params.txt'):
+        with open('genmap_params.txt') as f:
+            for line in f:
+                if org in line:
+                    genmap_paras.append(line.strip().split()[1:])
 
     idx2 = []
     best2 = []

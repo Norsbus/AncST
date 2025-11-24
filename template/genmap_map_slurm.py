@@ -39,27 +39,30 @@ if __name__ == "__main__":
         for line in f:
             orgs.add(line.strip())
     k_e = {}
-    with open(f'{work_dir}/genmap_params.txt') as f:
-        for line in f:
-            if '#' in line:
-                continue
-            line = line.strip().split()
-            genome,k,e = line[:3]
-            if genome not in k_e:
-                k_e[genome] = set()
-            k_e[genome].add((k,e))
+    if os.path.isfile(f'{work_dir}/genmap_params.txt'):
+        with open(f'{work_dir}/genmap_params.txt') as f:
+            for line in f:
+                if '#' in line:
+                    continue
+                line = line.strip().split()
+                genome,k,e = line[:3]
+                if genome not in k_e:
+                    k_e[genome] = set()
+                k_e[genome].add((k,e))
 
-    with open(f'{work_dir}/dups_params.txt') as f:
-        for line in f:
-            if '#' in line:
-                continue
-            line = line.strip().split()
-            genome,k,e = line[:3]
-            if genome not in k_e:
-                k_e[genome] = set()
-            k_e[genome].add((k,e))
-            k,e = line[3:5]
-            k_e[genome].add((k,e))
+    if os.path.isfile(f'{work_dir}/dups_params.txt'):
+        with open(f'{work_dir}/dups_params.txt') as f:
+            for line in f:
+                if '#' in line:
+                    continue
+                line = line.strip().split()
+                genome,k,e = line[:3]
+                if genome not in k_e:
+                    k_e[genome] = set()
+                k_e[genome].add((k,e))
+                k,e = line[3:5]
+                k_e[genome].add((k,e))
     for org in orgs:
-        for k,e in k_e[org]:
-            thread_process(org,[(k,e)])
+        if org in k_e:
+            for k,e in k_e[org]:
+                thread_process(org,[(k,e)])
