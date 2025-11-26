@@ -182,13 +182,6 @@ no_new = {}
 for org in orgs:
     no_new[org] = 0
 
-with open('MODE') as f:
-    txt = f.read().strip()
-    if 'automatic' in txt:
-        mode = 'manual'
-    else:
-        mode = 'automatic'
-
 start = time()
 run(f'snakemake --scheduler greedy --conda-frontend conda --use-conda --keep-incomplete --rerun-incomplete -s {code_dir}/snakefile_get_pot_windows_macle_and_genmap_manual -c 64 --config work_dir="{work_dir}" code_dir="{code_dir}" root_dir="{root}"',shell=True)
 passed = time() - start
