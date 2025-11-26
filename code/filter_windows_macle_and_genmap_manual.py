@@ -310,6 +310,7 @@ def combine_and_filter_new_ones(idx,bib=False):
             pos = bisect_left(seqlen,idx_start)
             if idx_start == seqlen[pos]:
                 pos += 1
+            ident1 = seqids[pos]
             if idx_end > seqlen[pos] - 1:
                 # means that its last window on chromosome and midpoint + interval is bigger than chromosome
                 print(f'last, not appending because too short:{idx_start} - {idx_end}')
@@ -325,7 +326,6 @@ def combine_and_filter_new_ones(idx,bib=False):
                         pos_tmp += 1
                     ident_tmp = seqids[pos_tmp]
                 continue
-            ident1 = seqids[pos]
             pos = bisect_left(seqlen,idx[i+1])
             if idx[i+1] == seqlen[pos]:
                 pos += 1
