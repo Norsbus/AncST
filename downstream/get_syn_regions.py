@@ -9,6 +9,7 @@ from dbscan1d.core import DBSCAN1D
 import argparse
 import networkx as nx
 import markov_clustering as mc
+import scipy.sparse as sp
 import os
 
 def which_chromo(seqlen,seqids,i):
@@ -18,7 +19,7 @@ def which_chromo(seqlen,seqids,i):
         pos += 1
     return(seqids[pos])
 
-def get_regions(org,iss,j):
+def get_regions(dbs,org,iss,j):
     iss.sort()
     labels = dbs.fit_predict(iss)
     regions = {}
@@ -139,6 +140,7 @@ def get_elements_and_syntenies_of_regions(global_regions):
         mapping[c] = node
         c += 1
     matrix = nx.to_scipy_sparse_array(G, nodelist=nodelist)
+    matrix = sp.csr_matrix(matrix)  # Convert sparse array to sparse matrix for markov_clustering (there was some compatibility issue with a newer version of network and the expected input for mcl clustering)
     result = mc.run_mcl(matrix)
     clusters_mcl = mc.get_clusters(result)
 
@@ -168,7 +170,7 @@ def get_elements_and_syntenies_of_regions(global_regions):
 
     return cont_eles,pw_syn,trans_syn,pw_syn_mcl
 
-def get_new_regions_to_eval(org,global_reg,old_reg):
+def get_new_regions_to_eval(margin_to_be_new,org,global_reg,old_reg):
     if len(old_reg) == 0:
         return org,[(s,e) for s,e in global_reg.values()]
     new_regions_to_eval = []
@@ -189,7 +191,7 @@ def get_new_regions_to_eval(org,global_reg,old_reg):
 
     return org,new_regions_to_eval
 
-def get_coords(query_org,target_orgs,regions,first=0):
+def get_coords(coords_to_exclude,aligned_path,query_org,target_orgs,regions,first=0):
     if first == -1:
         regions = list(regions.values())
     with open(f'{aligned_path}/{query_org}','rb') as f:
@@ -292,7 +294,7 @@ if __name__ == "__main__":
             for line in f:
                 orgs.append(line.strip())
     else:
-        orgs = os.listdir(f'{anchor_path}/aligned/')
+        orgs = [x for x in os.listdir(f'{anchor_path}/aligned/') if 'syn_eval' not in x]
 
     target_orgs = orgs
 
@@ -325,6 +327,11 @@ if __name__ == "__main__":
             end = int(end)
             mid = int(start+(end-start)/2)
             seqids,seqlen = small_meta[org]
+            if chromo not in seqids:
+                print(f'{chromo} not in genome {org}')
+                continue
+            else:
+                print(f'{chromo} in genome {org}')
             idx_l = seqids.index(chromo)
             if idx_l > 0:
                 l = seqlen[idx_l-1]
@@ -375,13 +382,13 @@ if __name__ == "__main__":
     print(f'iteration no 1')
 
     with mp.Pool(processes=no_cores) as p:
-        res = p.starmap(get_coords,[(query_org,target_orgs,regions,1) for query_org,regions in initial_regions.items()])
+        res = p.starmap(get_coords,[(coords_to_exclude,aligned_path,query_org,target_orgs,regions,1) for query_org,regions in initial_regions.items()])
 
     collect = reconcile_collect(res,collect)
 
     j = 1
     with mp.Pool(processes=no_cores) as p:
-        res = p.starmap(get_regions,[(org,np.array(list(bib.keys())),j) for org,bib in collect.items()])
+        res = p.starmap(get_regions,[(dbs,org,np.array(list(bib.keys())),j) for org,bib in collect.items()])
 
     global_regions = {}
     for org,regions in res:
@@ -394,7 +401,7 @@ if __name__ == "__main__":
             old_regions[org] = []
 
     with mp.Pool(processes=no_cores) as p:
-        res = p.starmap(get_new_regions_to_eval,[(org,global_regions[org],old_regions[org]) for org in list(global_regions.keys())])
+        res = p.starmap(get_new_regions_to_eval,[(margin_to_be_new,org,global_regions[org],old_regions[org]) for org in list(global_regions.keys())])
    
     new_regions = {}
     for org,regions in res:
@@ -409,7 +416,7 @@ if __name__ == "__main__":
         print(f'iteration no {j}')
 
         with mp.Pool(processes=no_cores) as p:
-            res = p.starmap(get_coords,[(query_org,target_orgs,regions) for query_org,regions in new_regions.items()])
+            res = p.starmap(get_coords,[(coords_to_exclude,aligned_path,query_org,target_orgs,regions) for query_org,regions in new_regions.items()])
         
         collect = reconcile_collect(res,collect)
 
@@ -418,7 +425,7 @@ if __name__ == "__main__":
             old_regions[org] = list(bib.values())
 
         with mp.Pool(processes=no_cores) as p:
-            res = p.starmap(get_regions,[(org,np.array(list(bib.keys())),j) for org,bib in collect.items()])
+            res = p.starmap(get_regions,[(dbs,org,np.array(list(bib.keys())),j) for org,bib in collect.items()])
 
         global_regions = {}
         for org,regions in res:
@@ -430,21 +437,25 @@ if __name__ == "__main__":
                 old_regions[org] = []
 
         with mp.Pool(processes=no_cores) as p:
-            res = p.starmap(get_new_regions_to_eval,[(org,global_regions[org],old_regions[org]) for org in list(global_regions.keys())])
+            res = p.starmap(get_new_regions_to_eval,[(margin_to_be_new,org,global_regions[org],old_regions[org]) for org in list(global_regions.keys())])
        
         new_regions = {}
         for org,regions in res:
             new_regions[org] = regions
     
     with mp.Pool(processes=no_cores) as p:
-        res = p.starmap(get_coords,[(query_org,target_orgs,regions,-1) for query_org,regions in global_regions.items()])
+        res = p.starmap(get_coords,[(coords_to_exclude,aligned_path,query_org,target_orgs,regions,-1) for query_org,regions in global_regions.items()])
     collect = reconcile_collect(res,collect)
 
+    if len(global_regions) == 0 or sum([len(v) for v in list(global_regions.values())]) == 0:
+        print(f'no regions found')
+        exit()
     cont_eles,pw_syn,trans_syn,pw_syn_mcl = get_elements_and_syntenies_of_regions(global_regions)
 
     bp_no = 1
 
-    with open(f'syntenic_regions','w') as f:
+    print('writing final output file')
+    with open(f'syntenic_regions_verbose','w') as f:
         for org,bib in global_regions.items():
             f.write(f'==============================================================================================================\n')
             f.write(f'{org}\n')
@@ -470,9 +481,10 @@ if __name__ == "__main__":
                 end = min(len_chr,end)
                 if chromo_end != chromo:
                     elements1 = []
-                    for x in coords[org][chromo]:
-                        if x[0] >= start and x[1] <= end:
-                            elements1.append(x[-1])
+                    if org in coords and chromo in coords[org]:
+                        for x in coords[org][chromo]:
+                            if x[0] >= start and x[1] <= end:
+                                elements1.append(x[-1])
                     f.write('-----------------------------------------------------------------------------------------------------------------\n')
                     f.write(f'<<< {org}\tregion {ident}\t{chromo}\t{start}\t{end} (== end of chr) \tPOTENTIAL CHROMOSOMAL BREAKPOINT {bp_no} REGION 1 >>>\n')
                     f.write(f'\telements: {elements1}\n')
@@ -516,9 +528,10 @@ if __name__ == "__main__":
                     end -= le
                     end = min(len_chr,end)
                     elements2 = []
-                    for x in coords[org][chromo_end]:
-                        if x[0] >= start and x[1] <= end:
-                            elements2.append(x[-1])
+                    if org in coords and chromo_end in coords[org]:
+                        for x in coords[org][chromo_end]:
+                            if x[0] >= start and x[1] <= end:
+                                elements2.append(x[-1])
                     f.write('-----------------------------------------------------------------------------------------------------------------\n')
                     f.write(f'<<< {org}\tregion {ident}\t{chromo_end}\t{start} (== start of chr) \t{end}\tPOTENTIAL CHROMOSOMAL BREAKPOINT {bp_no} REGION 2 >>>\n')
                     f.write(f'\telements: {elements2}\n')
@@ -587,3 +600,40 @@ if __name__ == "__main__":
                                 f.write(f'\t\t\tregion {reg2}\n')
                     f.write('-----------------------------------------------------------------------------------------------------------------\n')
             f.write(f'==============================================================================================================\n')
+    with open(f'syntenic_regions_succinct','w') as f:
+        for org,bib in global_regions.items():
+            for ident,t in sorted(bib.items(), key=lambda x: x[1]):
+                start,end = t
+                seqids,seqlen = small_meta[org]
+                chromo = which_chromo(seqlen,seqids,start)
+                chromo_end = which_chromo(seqlen,seqids,end)
+                if chromo_end != chromo:
+                    seqlen_chr_start = seqlen[seqids.index(chromo)]
+                    save_end = end
+                    end = seqlen_chr_start - 1
+                idx_l = seqids.index(chromo)
+                if idx_l > 0:
+                    le = seqlen[idx_l-1]
+                else:
+                    le = 0
+                len_chr = seqlen[idx_l] - le
+                start -= le
+                start = max(0,start)
+                end -= le
+                end = min(len_chr,end)
+                if chromo_end != chromo:
+                    start1 = start
+                    end1 = len_chr - 1
+                    f.write(f'{org}\t{chromo}\t{start1}\t{end1}\tPOT BP1\n')
+                    start2 = 0
+                    idx_l = seqids.index(chromo_end)
+                    if idx_l > 0:
+                        le = seqlen[idx_l-1]
+                    else:
+                        le = 0
+                    len_chr = seqlen[idx_l] - le
+                    end2 = save_end - le
+                    end2 = min(len_chr,end2)
+                    f.write(f'{org}\t{chromo_end}\t{start2}\t{end2}\tPOT BP2\n')
+                else:
+                    f.write(f'{org}\t{chromo}\t{start}\t{end}\tNO BP\n')
