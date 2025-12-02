@@ -11,6 +11,7 @@ import networkx as nx
 import markov_clustering as mc
 import scipy.sparse as sp
 import os
+from os.path import isfile
 
 def which_chromo(seqlen,seqids,i):
     seqlen = sorted(seqlen)
@@ -194,6 +195,10 @@ def get_new_regions_to_eval(margin_to_be_new,org,global_reg,old_reg):
 def get_coords(coords_to_exclude,aligned_path,query_org,target_orgs,regions,first=0):
     if first == -1:
         regions = list(regions.values())
+    if isfile(f'{aligned_path}/{query_org}_with_syn_eval'):
+        ad = f'{aligned_path}/{query_org}_with_syn_eval'
+    else:
+        ad = f'{aligned_path}/{query_org}'
     with open(f'{aligned_path}/{query_org}','rb') as f:
         aligned = pickle.load(f)
     iss = sorted(aligned.keys())

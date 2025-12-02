@@ -3,6 +3,7 @@
 from subprocess import run
 import pickle
 from sys import argv
+from os.path import isfile
 
 def get_al(org):
     orgs = []
@@ -17,7 +18,11 @@ def get_al(org):
             seqids,seqlen = pickle.load(f)
         size[o] = seqlen[-1]
 
-    with open(f'../utils/anchors/aligned/{org}_with_syn_eval','rb') as f:
+    if isfile(f'../utils/anchors/aligned/{org}_with_syn_eval'):
+        ad = f'../utils/anchors/aligned/{org}_with_syn_eval'
+    else:
+        ad = f'../utils/anchors/aligned/{org}'
+    with open(ad,'rb') as f:
         anchor_map = pickle.load(f)
 
     aligned = {}

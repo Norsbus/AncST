@@ -2,6 +2,7 @@
 
 from sys import argv
 import pickle
+from os.path import isfile
 
 if len(argv) > 1:
     anchor_dir = argv[1]
@@ -17,7 +18,11 @@ all_anchors_gff = open('gff/all_anchors.gff3','w')
 all_align_gff = open('gff/all_alignments.gff3','w')
 for org in orgs:
     align_counter = 1
-    with open(anchor_dir+f'/aligned/{org}_with_syn_eval','rb') as f:
+    if isfile(anchor_dir+f'/aligned/{org}_with_syn_eval'):
+        ad = anchor_dir+f'/aligned/{org}_with_syn_eval'
+    else:
+        ad = anchor_dir+f'/aligned/{org}'
+    with open(ad,'rb') as f:
         anchors = pickle.load(f)
     anchors_gff = open(f'gff/anchors_{org}.gff3','w')
     align_gff = open(f'gff/alignments_{org}.gff3','w')

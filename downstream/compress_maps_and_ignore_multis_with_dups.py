@@ -3,6 +3,7 @@
 import pickle
 from sys import argv
 from pprint import pprint
+from os.path import isfile
 
 def check_orientation(match_bib):
     global cases
@@ -49,7 +50,13 @@ anchor_dir = argv[2]
 new = {}
 cases = 0
 all_same = 0
-with open(anchor_dir+f'/aligned/{org}_with_syn_eval','rb') as f:
+
+if isfile(anchor_dir+f'/aligned/{org}_with_syn_eval'):
+    ad = anchor_dir+f'/aligned/{org}_with_syn_eval'
+else:
+    ad = anchor_dir+f'/aligned/{org}'
+
+with open(ad,'rb') as f:
     aligned = pickle.load(f)
 for i,bib1 in aligned.items():
     valid = False
