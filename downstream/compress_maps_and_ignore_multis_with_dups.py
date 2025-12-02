@@ -33,6 +33,8 @@ def check_orientation(match_bib):
         cases += 1
         f_count = oris.count('forward')
         r_count = oris.count('reverse')
+    else:
+        return(False)
     if f_count >= r_count:
         return('forward')
     else:
