@@ -8,3 +8,4 @@ like ./MCScanX_h MCScanX_plus_coords_only_relevant
 of elements (pretty naively from the MCScanX output collinerity file)
 - to draw the inferred MCScanX blocks (with pygenomeviz) execute "python3 mcdraw.py --mcscanx_file {file} --threshold_chr {len_smalleest chr/scaffold/contig to draw (not to clutter the image}". this will use the anchor alignments to infer a greedy pariwise drawing order and then parse the mcscanx blocks and draw them according to the order.
 - produce a phylogeny based on anchor alignemtns involved in collinearity chains with "python3 phylogeny_from_mcscanx.py" if MCScanX.collinearity is available.
+- convert_ncbi_idents.py can be used to convert ncbi accessions back to names like "python3 convert_ncbi_idents.py NJTree.nwk NJTree.nwk_names"
