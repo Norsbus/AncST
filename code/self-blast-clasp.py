@@ -11,12 +11,45 @@ from bisect import bisect_left
 import pickle
 from subprocesses import blast,clasp
 import re
+from collections import Counter
 
 _nsre = re.compile('([0-9]+)')
 def natural_sort_key(s):
         return [int(text) if text.isdigit() else text.lower()
                             for text in re.split(_nsre, s)]
+
 def make_new_regions(regions):
+
+    new_regions = []
+    starts = [(x[0][0],x[1],'start') for x in regions]
+    ends = [(x[0][1],x[1],'end') for x in regions]
+    se = sorted(starts+ends)
+    score_counts = Counter()
+
+    for j,i in enumerate(se[:-1]):
+        if i[-1] == 'start':
+            score_counts[i[1]] += 1
+        else:
+            score_counts[i[1]] -= 1
+            if score_counts[i[1]] == 0:
+                del score_counts[i[1]]
+        if se[j+1][0] - i[0] == 0:
+            if i[1] > se[j+1][1]:
+                se[j+1][1] = i[1]
+            continue
+
+        if len(new_regions) > 0:
+            if new_regions[-1][1] == max(score_counts):
+                new_regions[-1][0][1] = se[j+1][0]
+            else:
+                new_regions.append([[i[0],se[j+1][0]],max(score_counts)])
+        else:
+            new_regions.append([[i[0],se[j+1][0]],max(score_counts)])
+
+    return(new_regions)
+
+
+def make_new_regions_old(regions):
     
     new_regions = []
     starts = [(x[0][0],x[1],'start') for x in regions]

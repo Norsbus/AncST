@@ -23,12 +23,18 @@ orgs = []
 with open(f"{work_dir}/orgs","r") as f:
     for line in f:
         orgs.append(line.strip())
+caf = []
+with open(f"{work_dir}/compute_anchors_for","r") as f:
+    for line in f:
+        caf.append(line.strip())
 
 orgs_tuples = []
 files = []
 
-for i,org1 in enumerate(orgs):
-    for org2 in orgs[i+1:]:
+for org1 in caf:
+    for org2 in orgs:
+        if org2 == org1:
+            continue
         orgs_tuple = org1 + '---' + org2
         chunks = [name.split('forward.')[1] for name in os.listdir(f'{work_dir}/sequences_to_compare/{org2}/forward_split')]
         for f in chunks:
