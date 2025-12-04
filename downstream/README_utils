@@ -1,7 +1,8 @@
 - here are some util scripts and meta data (further described below) and the anchors in python pickles with verbose info ("anchors") and succinct info ("compressed_maps_multis_to_one")
 
-# phylogeny: based on the anchor alignments, a UPGMA and NJ tree was calculated and is available here. produced by ../scripts_which_produced_these_results/phylogeny_from_anchors.py
-# - convert_ncbi_idents.py can be used to convert ncbi accessions back to names like "python3 convert_ncbi_idents.py NJTree.nwk NJTree.nwk_names"
+- phylogeny: based on the anchor alignments, a UPGMA and NJ tree was calculated and is available here. produced by ../scripts_which_produced_these_results/phylogeny_from_anchors.py
+- convert_ncbi_idents.py can be used to convert ncbi accessions back to names like "python3 convert_ncbi_idents.py NJTree.nwk NJTree.nwk_names"
+- root_NJ_tree_at_midpoint.py can be used to root the NJ trees
 
 1. put a protein or nucleotide sequence that you want to find orthologues for in a fasta file
 2. put a list of all organisms to search for homologs in a file named "orgs". one organism per line
