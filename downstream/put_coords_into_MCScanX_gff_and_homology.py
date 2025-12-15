@@ -2,7 +2,7 @@
 
 from bisect import bisect_left
 import sys
-sys.path.append('../utils/')
+sys.path.append('../../utils/')
 from get_mapping import get_mapping
 
 def overlap(start,end,coords_to_check):

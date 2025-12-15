@@ -2,7 +2,7 @@
 
 from bisect import bisect_left
 import sys
-sys.path.append('../utils/')
+sys.path.append('../../utils/')
 from get_mapping import get_mapping
 
 def write():
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     margin = int(sys.argv[1])
    
     coords = {}
-    with open('../utils/coords_both_genomic_and_regional_nono') as f:
+    with open('../../utils/coords_both_genomic_and_regional_nono') as f:
         for line in f:
             org,chromo,start,end,ori,hit_name = line.strip().split()
             if org not in coords:

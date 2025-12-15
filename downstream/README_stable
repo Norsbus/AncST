@@ -1,0 +1,13 @@
+- the contents here relate to the tutorial at https://anchored.bioinf.uni-leipzig.de/
+- these are the most tested and probably most useful downstream programs for a synteny 
+anaylsis with AncST
+- the idea is that by using MCScanX genome-wide macrosynteny is computed based on 
+AncST anchors and consequentially, high confidence chains of alignments are obtained 
+which represent larger regions of probable orthology and the output can also be used 
+to study large genome rearrangements visually by using mcdraw.py to draw the alignments 
+of genomes. greedily. custom scripts are still needed at this point to quantify rearrangements 
+of interest
+- the synthology pipeline makes use of the MCScanX output and is used to infer orthology between 
+single or groups of genetic elements of interest which can be DNA (_nucl version) or protein (_prot) 
+sequences of any type
+- check out the READMEs in the respective directories for more info

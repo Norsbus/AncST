@@ -15,7 +15,9 @@ with open('orgs') as f:
         orgs.append(line.strip())
 
 all_anchors_gff = open('gff/all_anchors.gff3','w')
+all_anchors_gff.write('##gff-version 3\n')
 all_align_gff = open('gff/all_alignments.gff3','w')
+all_align_gff.write('##gff-version 3\n')
 for org in orgs:
     align_counter = 1
     if isfile(anchor_dir+f'/aligned/{org}_with_syn_eval'):
@@ -25,7 +27,9 @@ for org in orgs:
     with open(ad,'rb') as f:
         anchors = pickle.load(f)
     anchors_gff = open(f'gff/anchors_{org}.gff3','w')
+    anchors_gff.write('##gff-version 3\n')
     align_gff = open(f'gff/alignments_{org}.gff3','w')
+    align_gff.write('##gff-version 3\n')
     for i,bib in anchors.items():
         idd = f'{org}_{i}'
         chromo = bib['chromosome']
@@ -50,8 +54,8 @@ for org in orgs:
                     chr_hitend1 = hitend1 + start
                     hitstart2,hitend2 = m[f'hit coordinates in {org2} candidate']
                     score = m['match score']
-                    align_gff.write(f'{chromo} AncST alignment {chr_hitstart1} {chr_hitend1} {score} {strand} . ID=alignment{align_counter};Target={org2}_{j} {hitstart2} {hitend2}\n')
-                    all_align_gff.write(f'{chromo} AncST alignment {chr_hitstart1} {chr_hitend1} {score} {strand} . ID=alignment{align_counter};Target={org2}_{j} {hitstart2} {hitend2}\n')
+                    align_gff.write(f'{chromo}\tAncST\talignment\t{chr_hitstart1}\t{chr_hitend1}\t{score}\t{strand}\t.\tID=alignment{align_counter};Target={org2}_{j} {hitstart2} {hitend2}\n')
+                    all_align_gff.write(f'{chromo}\tAncST\talignment\t{chr_hitstart1}\t{chr_hitend1}\t{score}\t{strand}\t.\tID=alignment{align_counter};Target={org2}_{j} {hitstart2} {hitend2}\n')
                     any_match = 1
                     align_counter += 1
             if 'dups_matches' in match_bib and 'syntenic' in match_bib['dups_matches']:
@@ -66,15 +70,15 @@ for org in orgs:
                     chr_hitstart1 = hitstart1 + start
                     chr_hitend1 = hitend1 + start
                     hitstart2,hitend2 = m[f'hit coordinates in {org2} candidate']
-                    score = ['match score']
-                    align_gff.write(f'{chromo} AncST alignment {chr_hitstart1} {chr_hitend1} {score} {strand} . ID=alignment{align_counter};Target={org2}_{j} {hitstart2} {hitend2}\n')
-                    all_align_gff.write(f'{chromo} AncST alignment {chr_hitstart1} {chr_hitend1} {score} {strand} . ID=alignment{align_counter};Target={org2}_{j} {hitstart2} {hitend2}\n')
+                    score = m['match score']
+                    align_gff.write(f'{chromo}\tAncST\talignment\t{chr_hitstart1}\t{chr_hitend1}\t{score}\t{strand}\t.\tID=alignment{align_counter};Target={org2}_{j} {hitstart2} {hitend2}\n')
+                    all_align_gff.write(f'{chromo}\tAncST\talignment\t{chr_hitstart1}\t{chr_hitend1}\t{score}\t{strand}\t.\tID=alignment{align_counter};Target={org2}_{j} {hitstart2} {hitend2}\n')
                     any_match = 1
                     align_counter += 1
 
         if any_match == 1:
-            all_anchors_gff.write(f'{chromo}\tAncST\tDNA\t{start}\t{end}\t.\t+\t.\tID={idd};duplicate anchor={dup}\n') 
-            anchors_gff.write(f'{chromo}\tAncST\tDNA\t{start}\t{end}\t.\t+\t.\tID={idd};duplicate anchor={dup}\n') 
+            all_anchors_gff.write(f'{chromo}\tAncST\tDNA\t{start}\t{end}\t.\t+\t.\tID={idd};duplicate_anchor={dup}\n')
+            anchors_gff.write(f'{chromo}\tAncST\tDNA\t{start}\t{end}\t.\t+\t.\tID={idd};duplicate_anchor={dup}\n') 
 
 
 

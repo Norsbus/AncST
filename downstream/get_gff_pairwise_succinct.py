@@ -56,9 +56,6 @@ if __name__ == "__main__":
             for org2,bib3 in bib2['matches'].items():
                 if org2 not in orgs:
                     continue
-                if len(bib3) > 1:
-                    print(org,i)
-                    pprint(bib3)
                 for j,mbib in bib3.items():
                     if j not in am[org2] or org not in am[org2][j]['matches'] or i not in am[org2][j]['matches'][org]:
                         continue

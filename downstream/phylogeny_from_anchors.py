@@ -7,24 +7,47 @@ from Bio import AlignIO
 from Bio.Phylo.TreeConstruction import DistanceMatrix
 import numpy as np
 import pickle
+import os
 
 
 def get_matrix_from_anchors():
 
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+
     orgs = []
-    with open('orgs') as f:
+    # Check both paths for orgs file
+    if os.path.exists('orgs'):
+        orgs_path = 'orgs'
+    elif os.path.exists(dir_path + '/../utils/orgs'):
+        orgs_path = dir_path + '/../utils/orgs'
+    else:
+        raise FileNotFoundError("orgs file not found")
+
+    with open(orgs_path) as f:
         for line in f:
             orgs.append(line.strip())
 
     ams = {}
     for org in orgs:
-        path = 'compressed_maps_multis_to_one/{}'.format(org)
+        # Check both paths for compressed_maps_multis_to_one
+        if os.path.exists('compressed_maps_multis_to_one/{}'.format(org)):
+            path = 'compressed_maps_multis_to_one/{}'.format(org)
+        elif os.path.exists(dir_path + '/../utils/compressed_maps_multis_to_one/{}'.format(org)):
+            path = dir_path + '/../utils/compressed_maps_multis_to_one/{}'.format(org)
+        else:
+            raise FileNotFoundError(f"compressed_maps_multis_to_one/{org} not found")
         with open(path, 'rb') as f:
             ams[org] = pickle.load(f)
 
     lens = {}
     for org in orgs:
-        path = '../utils/small_meta/{}'.format(org)
+        # Check both paths to work from downstream/ and from out/scripts_which_produced_these_results/
+        if os.path.exists(dir_path + '/../utils/small_meta/{}'.format(org)):
+            path = dir_path + '/../utils/small_meta/{}'.format(org)
+        elif os.path.exists(dir_path + '/../../utils/small_meta/{}'.format(org)):
+            path = dir_path + '/../../utils/small_meta/{}'.format(org)
+        else:
+            raise FileNotFoundError(f"small_meta file not found for {org}")
         with open(path, 'rb') as f:
             x = pickle.load(f)
             lens[org] = x[1][-1]
@@ -91,8 +114,6 @@ if __name__ == "__main__":
     #Phylo.draw(NJTree)
 
     #Phylo.draw_ascii(NJTree)
-
-    from Bio import Phylo
 
     Phylo.write(UPGMATree, "UPGMATree.nwk", "newick")
     Phylo.write(NJTree, "NJTree.nwk", "newick")

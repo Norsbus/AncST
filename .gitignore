@@ -35,6 +35,8 @@ template/.snakemake/*
 !downstream/config.json
 !downstream/orgs
 !downstream/ref_org
+!downstream/cur_unused
+!downstream/cur_unused/*
 
 # ...even if they are in subdirectories
 !*/

@@ -15,9 +15,9 @@ def get_chr_l(org,chromo):
 
 ref_genome = argv[1]
 
-small_meta_path = '../utils/small_meta/'
-anchors_path = '../utils/anchors/aligned/'
-anchors_path_cand = '../utils/anchors/candidates/'
+small_meta_path = '../../utils/small_meta/'
+anchors_path = '../../utils/anchors/aligned/'
+anchors_path_cand = '../../utils/anchors/candidates/'
 small_meta = {}
 
 target_genome = argv[2]

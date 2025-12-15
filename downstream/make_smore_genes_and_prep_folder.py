@@ -5,7 +5,7 @@
 import re,pickle
 from Bio import SeqIO
 import sys
-sys.path.append('../utils/')
+sys.path.append('../../utils/')
 from get_mapping import get_mapping
 from subprocess import run
 

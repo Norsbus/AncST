@@ -1,12 +1,14 @@
 - to run globally just execute {your MCScanX executable}_h -options MCScanX
 like ./MCScanX_h MCScanX if the executable is in current directory
+- to draw the inferred MCScanX blocks (with pygenomeviz) execute "python3 mcdraw.py --mcscanx_file {file} --threshold_chr {len_smalleest chr/scaffold/contig to draw (not to clutter the image}". this will use the anchor alignments to infer a greedy pariwise drawing order and then parse the mcscanx blocks and draw them according to the order.
+- produce a phylogeny based on anchor alignemtns involved in collinearity chains with "python3 phylogeny_from_mcscanx.py" if MCScanX.collinearity is available.
+- convert_ncbi_idents.py can be used to convert ncbi accessions back to names like "python3 convert_ncbi_idents.py NJTree.nwk NJTree.nwk_names"
+- root_NJ_tree_at_midpoint.py can be used to root the NJ trees
+
+experimental but usually working:
 - to include the elements from ../coords (see ../utils/README_utils) 
 run put_coords_into_MCScanX_gff_and_homology.py and run 
 {your MCScanX executable}_h -options MCScanX_plus_coords_only_relevant
 like ./MCScanX_h MCScanX_plus_coords_only_relevant
 - you can also run extract_MCScanX_orthologies.py afterwards to make some clusters
 of elements (pretty naively from the MCScanX output collinerity file)
-- to draw the inferred MCScanX blocks (with pygenomeviz) execute "python3 mcdraw.py --mcscanx_file {file} --threshold_chr {len_smalleest chr/scaffold/contig to draw (not to clutter the image}". this will use the anchor alignments to infer a greedy pariwise drawing order and then parse the mcscanx blocks and draw them according to the order.
-- produce a phylogeny based on anchor alignemtns involved in collinearity chains with "python3 phylogeny_from_mcscanx.py" if MCScanX.collinearity is available.
-- convert_ncbi_idents.py can be used to convert ncbi accessions back to names like "python3 convert_ncbi_idents.py NJTree.nwk NJTree.nwk_names"
-- root_NJ_tree_at_midpoint.py can be used to root the NJ trees

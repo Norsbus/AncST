@@ -56,7 +56,7 @@ margin = int(argv[1])
 orgs = []
 coords = {}
 to_ori = set()
-with open('../utils/coords_both_genomic_and_regional_nono') as f:
+with open('coords') as f:
     for line in f:
         line = line.strip().split()
         if len(line) == 5:

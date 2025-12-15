@@ -3,7 +3,8 @@
 
 import pickle
 import sys
-from get_mapping_local import get_mapping
+from os.path import isfile
+from get_mapping import get_mapping
 
 if __name__ == "__main__":
 
@@ -24,11 +25,15 @@ if __name__ == "__main__":
 
     candidates = {}
     for org in orgs:
-        with open(f'{anchor_dir}/candidates//{org}','rb') as f:
+        with open(f'{anchor_dir}/candidates/{org}','rb') as f:
             candidates[org] = pickle.load(f)
 
     for org in orgs:
-        with open(f'{anchor_dir}/aligned/{org}','rb') as f:
+        if isfile(f'{anchor_dir}/aligned/{org}_with_syn_eval'):
+            ad = f'{anchor_dir}/aligned/{org}_with_syn_eval'
+        else:
+            ad = f'{anchor_dir}/aligned/{org}'
+        with open(ad,'rb') as f:
             bib = pickle.load(f)
         done[org] = 1
         for i,bib2 in bib.items():

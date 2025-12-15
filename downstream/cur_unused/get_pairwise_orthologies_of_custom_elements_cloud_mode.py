@@ -2,7 +2,7 @@
 
 from subprocess import run
 import sys
-sys.path.append('../utils/')
+sys.path.append('../../utils/')
 from get_mapping import get_mapping
 import pickle
 from sys import argv

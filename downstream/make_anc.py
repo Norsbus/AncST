@@ -5,7 +5,7 @@ from bisect import bisect_left
 from Bio import SeqIO
 from subprocess import run
 import sys
-sys.path.append('../utils/')
+sys.path.append('../../utils/')
 from get_mapping import get_mapping
 
 

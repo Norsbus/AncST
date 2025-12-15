@@ -8,7 +8,7 @@ from Bio.Phylo.TreeConstruction import DistanceMatrix
 import numpy as np
 import pickle
 import sys
-sys.path.append('../utils/')
+sys.path.append('../../utils/')
 from get_mapping import get_mapping
 
 def get_scores():
@@ -26,7 +26,7 @@ def get_matrix_from_mcscanx_match_counts():
     org_mapping,chr_mapping = get_mapping()
 
     orgs = []
-    with open('../utils/orgs') as f:
+    with open('../../utils/orgs') as f:
         for line in f:
             orgs.append(line.strip())
 

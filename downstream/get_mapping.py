@@ -8,8 +8,12 @@ def get_mapping():
     chr_mapping = {}
     if os.path.exists(dir_path+'/../utils/mapping'):
         ff = dir_path+'/../utils/mapping'
+    elif os.path.exists(dir_path+'/../../utils/mapping'):
+        ff = dir_path+'/../../utils/mapping'
     elif os.path.exists('mapping'):
         ff = dir_path+'/mapping'
+    else:
+        print(f'no mapping file found')
     with open(ff) as f:
         org = False
         for line in f:

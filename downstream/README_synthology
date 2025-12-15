@@ -1,0 +1,104 @@
+- the synthology pipeline infers orthology relationships between genes using synteny information from MCScanX chains combined with sequence homology (blastn/blastp) and genomic alignment analysis
+
+# main scripts #
+
+run_synthology_nucl.py:
+- runs the nucleotide-based (BLASTN) synthology pipeline
+- usage: python3 run_synthology_nucl.py --cores {num} --col {MCScanX.collinearity} --homology_threshold {bitscore} --annotation_dir {dir_with_gff_and_seqs} --new_blast {y/n} --mapping_file {mapping_file} --pairwise_alignments {table_file} --use-clasp {y/n} --blast-mode {chains/all-vs-all}
+- example: python3 run_synthology_nucl.py --cores 8 --col MCScanX.collinearity --homology_threshold 40 --annotation_dir annotations_for_synthology --blast-mode chains
+- outputs go to synthology_out_nucl/
+
+run_synthology_prot.py:
+- runs the protein-based (BLASTP) synthology pipeline
+- same arguments as nucl version but uses protein sequences
+- example: python3 run_synthology_prot.py --cores 8 --col MCScanX.collinearity --homology_threshold 50 --annotation_dir annotations_for_synthology
+- outputs go to synthology_out_prot/
+
+compute_ortho_stats.py:
+- builds master orthology edge graph from synthology output with filtering statistics
+- usage: python3 compute_ortho_stats.py {output_dir}
+- example: python3 compute_ortho_stats.py synthology_out_nucl
+- creates master_orthology_edge_graph.pickle
+
+make_ortho_tables.py:
+- generates LaTeX tables showing edge counts through pipeline stages
+- usage: python3 make_ortho_tables.py {output_dir}
+- example: python3 make_ortho_tables.py synthology_out_nucl
+- outputs to {output_dir}/orthology_tables/
+
+plot_ortho_stats.py:
+- generates plots (SVG/PDF) showing orthology statistics
+- usage: python3 plot_ortho_stats.py {output_dir}
+- example: python3 plot_ortho_stats.py synthology_out_nucl
+- outputs to {output_dir}/orthology_plots/
+
+# pipeline overview #
+
+- step 1: parse MCScanX collinearity file to get synteny chains
+- step 2: parse GFF/FAA files to get gene positions and sequences
+- step 3: parse pairwise alignment table (optional, for genomic alignments)
+- step 4: merge synteny chains with gene positions
+- step 5: run BLAST (BLASTN or BLASTP) on genes within chains (or all-vs-all)
+- step 6: build pairwise homology graphs and edit to cograph (removes conflicts)
+- step 7: align genomic sequences to infer rearrangements (duplications, inversions, etc)
+- step 8: build union graph combining all pairwise graphs
+- step 9: edit union graph to cograph (two versions: with/without new edges)
+- step 10: extract orthology groups from final graph
+
+# blast modes #
+
+- chains mode (default, faster): only BLAST genes that fall within MCScanX synteny chains. recommended for most cases
+- all-vs-all mode (slower): BLAST all genes against all genes. useful for evaluation and finding non-syntenic homologs
+
+# clasp option #
+
+- if --use-clasp y (default): uses CLASP to chain BLAST hits, giving more robust scores for fragmented alignments
+- if --use-clasp n: uses raw BLAST bitscores
+- clasp chaining helps with genes that have indels or sequencing gaps
+- parameters are very lenient right now and you have to change them in the script (they are hardcoded)
+
+# output files #
+
+main outputs in synthology_out_{nucl/prot}/:
+- parsed_mcscanx_chains: cached parsed MCScanX data
+- merged_chains_genes.pickle: genes merged with synteny chains
+- blast_results_{species_pair}.txt: raw BLAST output files
+- pairwise_graphs.pickle: initial homology graphs before cograph editing
+- pairwise_cographs.pickle: graphs after cograph editing (conflicts removed)
+- aligned_graphs.pickle: graphs after genomic alignment analysis
+- final_union_graph_with_new_edges.pickle: union graph allowing new edges from cograph editing
+- final_union_graph_no_new_edges.pickle: union graph only keeping original edges (recommended)
+- alignments/: detailed alignment results per species pair
+- master_orthology_edge_graph.pickle: final statistics graph (from compute_ortho_stats.py)
+
+- input: MCScanX collinearity file, GFF files, FASTA sequences, pairwise alignments table (optional)
+
+# typical workflow #
+
+1. prepare input data:
+   - run MCScanX to get collinearity file (see README_MCScanX)
+   - organize GFF files in {annotation_dir}/gff/
+   - organize FASTA sequences in {annotation_dir}/seqs/
+
+2. run synthology pipeline:
+   python3 run_synthology_nucl.py --cores 8 --col MCScanX.collinearity --annotation_dir annotations_for_synthology
+
+3. compute statistics:
+   python3 compute_ortho_stats.py synthology_out_nucl
+
+4. generate tables and plots:
+   python3 make_ortho_tables.py synthology_out_nucl
+   python3 plot_ortho_stats.py synthology_out_nucl
+
+5. compile LaTeX tables (if needed):
+   cd synthology_out_nucl/orthology_tables
+   pdflatex all_vs_all_pipeline.tex
+
+# notes #
+
+- the pipeline uses cograph editing to remove conflicts in homology graphs. this ensures transitivity: if A~B and B~C then A~C
+- RBH (reciprocal best hits) are tracked throughout to compare strict vs. relaxed orthology
+- genomic alignment step infers rearrangements (tandem dups, segmental dups, inversions) using dynamic programming
+- two final graphs are saved: one allowing new edges from cograph editing, one preserving only original edges. usually the no_new_edges version is more conservative and recommended
+- per-species statistics are tracked if you want to see which species contribute most edges at each stage
+- the all-vs-all mode can be very slow and memory-intensive for large datasets but gives complete homology information

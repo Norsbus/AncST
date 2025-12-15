@@ -2,7 +2,7 @@
 
 
 import sys
-sys.path.append('../utils/')
+sys.path.append('../../utils/')
 from get_mapping import get_mapping
 import pickle
 from pygenomeviz import GenomeViz
@@ -76,9 +76,9 @@ if __name__ == "__main__":
 
     small_meta = {}
     for org in [x[0] for x in tr]:
-        with open(f'../utils/small_meta/{org}','rb') as f:
+        with open(f'../../utils/small_meta/{org}','rb') as f:
             small_meta[org] = pickle.load(f)
-    with open(f'../utils/small_meta/{tr[0][1]}','rb') as f:
+    with open(f'../../utils/small_meta/{tr[0][1]}','rb') as f:
         small_meta[tr[0][1]] = pickle.load(f)
 
     gv = GenomeViz()

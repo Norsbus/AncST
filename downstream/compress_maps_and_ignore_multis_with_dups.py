@@ -74,22 +74,6 @@ for i,bib1 in aligned.items():
         # check orientation
         checked_orientation = check_orientation(bib2)
         new_entry['matches'][org2] = {}
-        #if len(bib2['matches']) > 1:
-        #    maxi = 0
-        #    for j,bib3 in bib2['matches'].items():
-        #        if int(bib3['match score']) > maxi:
-        #            maxi = int(bib3['match score'])
-        #            if bib3['match is on other strand in other genome']:
-        #                ori = 'reverse'
-        #                check_ori = True
-        #            else:
-        #                ori = 'forward'
-        #                check_ori = False
-        #    for j,bib3 in bib2['matches'].items():
-        #        if int(bib3['match score']) == maxi and bib3['match is on other strand in other genome'] == check_ori:
-        #            new_entry['matches'][org2][j] = (int(bib3['match score']),bib3[f'hit coordinates in (own) {org} candidate'],ori)
-        #            break
-        #else:
         if 'matches' in bib2:
             for j,bib3 in sorted(bib2['matches'].items()):
                 if bib3['match is on other strand in other genome']:
@@ -104,7 +88,6 @@ for i,bib1 in aligned.items():
             for j,bib3 in sorted(bib2['dups_matches'].items()):
                 if j not in syn:
                     continue
-                pprint(bib3)
                 if bib3['match is on other strand in other genome']:
                     ori = 'reverse'
                 else:
@@ -114,6 +97,5 @@ for i,bib1 in aligned.items():
     if valid:
         new[i] = new_entry
 
-print(f'of {cases} alignments, {all_same} had the same orientation for all parts')
 with open(f'compressed_maps_multis_to_one/{org}','wb') as f:
     pickle.dump(new,f)

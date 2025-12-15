@@ -14,14 +14,14 @@ def get_al(org):
 
     size = {}
     for o in orgs:
-        with open(f'../utils/small_meta/{o}','rb') as f: 
+        with open(f'../../utils/small_meta/{o}','rb') as f: 
             seqids,seqlen = pickle.load(f)
         size[o] = seqlen[-1]
 
-    if isfile(f'../utils/anchors/aligned/{org}_with_syn_eval'):
-        ad = f'../utils/anchors/aligned/{org}_with_syn_eval'
+    if isfile(f'../../utils/anchors/aligned/{org}_with_syn_eval'):
+        ad = f'../../utils/anchors/aligned/{org}_with_syn_eval'
     else:
-        ad = f'../utils/anchors/aligned/{org}'
+        ad = f'../../utils/anchors/aligned/{org}'
     with open(ad,'rb') as f:
         anchor_map = pickle.load(f)
 
