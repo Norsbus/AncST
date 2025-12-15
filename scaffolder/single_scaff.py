@@ -4,13 +4,26 @@ from sys import argv
 from subprocess import run
 import pickle
 from os.path import isfile
-import sys
+import sys,os
 
 ref_genome = argv[1]
 
-small_meta_path = '../utils/small_meta/'
-anchors_path = '../anchors/aligned/'
-anchors_path_cand = '../anchors/candidates/'
+if os.path.exists('../utils/small_meta/'):
+    small_meta_path = '../utils/small_meta/'
+elif os.path.exists('small_meta/'):
+    small_meta_path = 'small_meta/'
+else:
+    raise FileNotFoundError("Small Metadata not found")
+
+if os.path.exists('../anchors/'):
+    anchors_path = '../anchors/aligned/'
+    anchors_path_cand = '../anchors/candidates/'
+elif os.path.exists('../utils/anchors/'):
+    anchors_path = '../utils/anchors/aligned/'
+    anchors_path_cand = '../utils/anchors/candidates/'
+else:
+    raise FileNotFoundError("Anchors not found")
+
 small_meta = {}
 
 target_genome = argv[2]

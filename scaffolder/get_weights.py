@@ -2,10 +2,16 @@
 
 from sys import argv
 from subprocess import run
-import pickle
+import pickle,os
 from os.path import isfile
 
-anchors_path = '../anchors/'
+
+if os.path.exists('../anchors/'):
+    anchors_path = '../anchors/'
+elif os.path.exists('../utils/anchors/'):
+    anchors_path = '../utils/anchors/'
+else:
+    raise FileNotFoundError("Anchors not found")
 
 refs = []
 with open('refs.txt','r') as f:
