@@ -6,6 +6,7 @@ template/.snakemake/*
 # But not these files...
 !.gitignore
 !README.md
+!TODOs
 !Licence.md
 !code/*
 !bin/*

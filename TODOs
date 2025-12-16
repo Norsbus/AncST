@@ -1,0 +1,1 @@
+- add support for multiple duplicate filterings: this needs removal of references to any overlapping anchors in the aligned maps...for now dups only computed if no aligned map exists
