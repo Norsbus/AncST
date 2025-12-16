@@ -163,21 +163,20 @@ execution_times.write(f'genmap maps: {passed}\n')
 start = time()
 
 done = 0
-for o in caf:
-    if os.path.isdir(f'../utils/blastdbs/{o}.nsq') and os.path.isdir(f'../utils/small_meta/{o}') and os.path.isdir(f'../utils/metadata_genomes/{o}'):
+for o in orgs:
+    if os.path.isfile(f'../utils/blastdbs/{o}.nsq') and os.path.isfile(f'../utils/small_meta/{o}') and os.path.isfile(f'../utils/metadata_genomes/{o}'):
         done += 1
 run(f'./run_metadata.py {work_dir}',shell=True)
-out = check_output('ls touch | grep metadata_done  | wc -l',shell=True)
-idle = int(out.decode().split()[0])
-while idle+done != len(orgs):
+while done != len(orgs):
     sleep(30)
-    out = check_output('ls touch | grep metadata_done  | wc -l',shell=True)
-    idle = int(out.decode().split()[0])
+    done = 0
+    for o in orgs:
+        if os.path.isfile(f'../utils/blastdbs/{o}.nsq') and os.path.isfile(f'../utils/small_meta/{o}') and os.path.isfile(f'../utils/metadata_genomes/{o}'):
+            done += 1
 passed = time() - start
 
 execution_times.write(f'metadata: {passed}\n')
-#
-#
+
 no_new = {}
 for org in orgs:
     no_new[org] = 0
