@@ -38,7 +38,8 @@ if __name__ == "__main__":
 
         # Check if dups file exists for this organism
         dups_file = f'dups/{org}'
-        if os.path.exists(dups_file):
+        # avoid adding dups to already aligned anchors...removal of changes/deleted candidates' matches etc. not implemented
+        if os.path.exists(dups_file) and not os.path.exists('../anchors/aligned' + f'/{org}'):
             with open(dups_file,'rb') as f:
                 dups = pickle.load(f)
 
