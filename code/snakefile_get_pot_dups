@@ -34,7 +34,7 @@ else:
 
 # organisms to compute for
 orgs = []
-with open(f"{work_dir}/orgs","r") as f:
+with open(f"{work_dir}/compute_anchors_for","r") as f:
     for line in f:
         orgs.append(line.strip())
 
