@@ -52,5 +52,5 @@ if __name__ == "__main__":
         paras[genome].add((len_lmers,interval))
     for org in orgs:
         if org in paras:
-            for len_lerms,interval in paras[org]:
+            for len_lmers,interval in paras[org]:
                 thread_process(org,len_lmers,interval)
