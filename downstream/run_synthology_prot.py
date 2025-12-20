@@ -1016,9 +1016,14 @@ parser.add_argument('--new_blast', type=str, default="n", help='y to run BLAST, 
 parser.add_argument('--mapping_file', type=str, default=None, help='path to mapping file (optional, uses get_mapping() if not specified)')
 parser.add_argument('--pairwise_alignments', type=str, default="../../utils/pairwise_alignments_table", help='path to pairwise alignments table file')
 parser.add_argument('--use-clasp', type=str, default="y", help='y to use CLASP chaining for BLAST hits, n for raw BLAST')
+parser.add_argument('--blast-mode', type=str, choices=['chains', 'all-vs-all'], default='chains',
+                    help='chains: BLAST only within synteny (fast); all-vs-all: BLAST all genes for evaluation (slow)')
+parser.add_argument('--blastp-path', type=str, default="blastp", help='path to blastp binary (default: blastp from PATH)')
+parser.add_argument('--clasp-path', type=str, default="../../utils/clasp.x", help='path to clasp.x binary (default: ../../utils/clasp.x)')
+parser.add_argument('--output_dir', type=str, default="synthology_out_prot", help='output directory for synthology results')
 args = parser.parse_args()
 
-OUTPUT_DIR = "synthology_out_prot"
+OUTPUT_DIR = args.output_dir
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(f"{OUTPUT_DIR}/to_comp", exist_ok=True)
 os.makedirs(f"{OUTPUT_DIR}/to_comp_out", exist_ok=True)
@@ -1034,6 +1039,9 @@ NEW_BLAST = args.new_blast == 'y'
 NUM_CORES = args.cores
 USE_CLASP = args.use_clasp == 'y'
 PAIRWISE_ALIGNMENTS_FILE = args.pairwise_alignments
+BLAST_MODE = args.blast_mode
+BLASTP_PATH = args.blastp_path
+CLASP_PATH = args.clasp_path
 
 def parse_blast_output(blast_file):
     
@@ -1233,7 +1241,7 @@ def filter_overlapping_chains(chains):
     return filtered_chains
 
 def run_blast_for_chain(args_tuple):
-    i, chain, output_dir, faa_dir, new_blast, use_clasp = args_tuple
+    i, chain, output_dir, faa_dir, new_blast, use_clasp, blastp_path, clasp_path = args_tuple
 
     # Define file paths
     blast_out_1 = f"{output_dir}/to_comp_out/{i}_1"
@@ -1283,8 +1291,8 @@ def run_blast_for_chain(args_tuple):
     # Run BLAST in both directions with appropriate format
     if use_clasp:
         # CLASP needs coordinates, use 12-column format
-        run(["blastp", "-query", faa1, "-subject", faa2, "-outfmt", "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore", "-out", blast_out_1, "-num_threads", "1"], capture_output=True)
-        run(["blastp", "-query", faa2, "-subject", faa1, "-outfmt", "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore", "-out", blast_out_2, "-num_threads", "1"], capture_output=True)
+        run([blastp_path, "-query", faa1, "-subject", faa2, "-outfmt", "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore", "-out", blast_out_1, "-num_threads", "1"], capture_output=True)
+        run([blastp_path, "-query", faa2, "-subject", faa1, "-outfmt", "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore", "-out", blast_out_2, "-num_threads", "1"], capture_output=True)
 
         # Run CLASP on both BLAST outputs (no strand splitting needed for blastp)
         clasp_in_1 = f"{output_dir}/clasp_in/{i}_1"
@@ -1296,8 +1304,8 @@ def run_blast_for_chain(args_tuple):
         run(f'cp {blast_out_2} {clasp_in_2}', shell=True)
 
         # Run CLASP
-        run(f'../../utils/clasp.x -m -i {clasp_in_1} -c 7 8 9 10 12 -C 1 2 -l 0 -e 0 -o {clasp_out_1}', shell=True)
-        run(f'../../utils/clasp.x -m -i {clasp_in_2} -c 7 8 9 10 12 -C 1 2 -l 0 -e 0 -o {clasp_out_2}', shell=True)
+        run(f'{clasp_path} -m -i {clasp_in_1} -c 7 8 9 10 12 -C 1 2 -l 0 -e 0 -o {clasp_out_1}', shell=True)
+        run(f'{clasp_path} -m -i {clasp_in_2} -c 7 8 9 10 12 -C 1 2 -l 0 -e 0 -o {clasp_out_2}', shell=True)
 
         # Parse CLASP outputs
         hits = []
@@ -1305,8 +1313,8 @@ def run_blast_for_chain(args_tuple):
         hits.extend(parse_clasp_output(clasp_out_2))
     else:
         # No CLASP, use simple 7-column format
-        run(["blastp", "-query", faa1, "-subject", faa2, "-outfmt", "6 qseqid sseqid bitscore evalue pident length qcovs", "-out", blast_out_1, "-num_threads", "1"], capture_output=True)
-        run(["blastp", "-query", faa2, "-subject", faa1, "-outfmt", "6 qseqid sseqid bitscore evalue pident length qcovs", "-out", blast_out_2, "-num_threads", "1"], capture_output=True)
+        run([blastp_path, "-query", faa1, "-subject", faa2, "-outfmt", "6 qseqid sseqid bitscore evalue pident length qcovs", "-out", blast_out_1, "-num_threads", "1"], capture_output=True)
+        run([blastp_path, "-query", faa2, "-subject", faa1, "-outfmt", "6 qseqid sseqid bitscore evalue pident length qcovs", "-out", blast_out_2, "-num_threads", "1"], capture_output=True)
 
         # Parse raw BLAST outputs
         hits = []
@@ -1314,6 +1322,70 @@ def run_blast_for_chain(args_tuple):
         hits.extend(parse_blast_output(blast_out_2))
 
     return i, hits
+
+def run_all_vs_all_blast(args_tuple):
+
+    sp1, sp2, fasta1, fasta2, output_dir, use_clasp, blastp_path, clasp_path = args_tuple
+
+    pair_id = f"{sp1}___{sp2}"
+
+    # Ensure output directory exists
+    os.makedirs(f"{output_dir}/all_vs_all", exist_ok=True)
+
+    blast_out_1 = f"{output_dir}/all_vs_all/blast_{pair_id}_1"
+    blast_out_2 = f"{output_dir}/all_vs_all/blast_{pair_id}_2"
+
+    # Run BLAST both directions (check=True will raise exception if BLAST fails)
+    run([blastp_path, "-query", fasta1, "-subject", fasta2, "-outfmt",
+         "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore",
+         "-out", blast_out_1, "-num_threads", "1"], check=True)
+    run([blastp_path, "-query", fasta2, "-subject", fasta1, "-outfmt",
+         "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore",
+         "-out", blast_out_2, "-num_threads", "1"], check=True)
+
+    # Verify BLAST created output files (if not, BLAST failed silently)
+    if not os.path.exists(blast_out_1):
+        raise FileNotFoundError(f"BLAST failed to create output: {blast_out_1}")
+    if not os.path.exists(blast_out_2):
+        raise FileNotFoundError(f"BLAST failed to create output: {blast_out_2}")
+
+    if use_clasp:
+        # Run CLASP (no strand splitting for proteins)
+        os.makedirs(f"{output_dir}/all_vs_all/clasp_in", exist_ok=True)
+        os.makedirs(f"{output_dir}/all_vs_all/clasp_out", exist_ok=True)
+
+        for suffix, blast_file in [('1', blast_out_1), ('2', blast_out_2)]:
+            clasp_in = f"{output_dir}/all_vs_all/clasp_in/{pair_id}_{suffix}"
+            clasp_out = f"{output_dir}/all_vs_all/clasp_out/{pair_id}_{suffix}"
+
+            # Read BLAST output and write to CLASP input (handles empty files - no hits is OK)
+            with open(blast_file) as f:
+                blast_data = f.read()
+            with open(clasp_in, 'w') as f:
+                f.write(blast_data)
+
+            # Run CLASP (will produce empty output if input is empty)
+            run(f'{clasp_path} -m -i {clasp_in} '
+                f'-c 7 8 9 10 12 -C 1 2 -l 0 -e 0 -o {clasp_out}',
+                shell=True)
+
+        # Parse CLASP outputs
+        hits = []
+        for suffix in ['1', '2']:
+            hits.extend(parse_clasp_output(f'{output_dir}/all_vs_all/clasp_out/{pair_id}_{suffix}'))
+    else:
+        # Parse raw BLAST
+        hits = []
+        hits.extend(parse_blast_output(blast_out_1))
+        hits.extend(parse_blast_output(blast_out_2))
+
+    # Convert to dict
+    edges_dict = {}
+    for qseqid, sseqid, score in hits:
+        edge = tuple(sorted([qseqid, sseqid]))
+        edges_dict[edge] = max(edges_dict.get(edge, 0), score)
+
+    return edges_dict
 
 def build_graph_from_blast(args_tuple):
     i, chain, blast_hits, blast_threshold = args_tuple
@@ -1985,7 +2057,7 @@ if __name__ == '__main__':
 
     print("\nValidating unique gene IDs...")
     validate_unique_gene_ids(parsed)
-    print("  ✓ All gene IDs are unique within each species")
+    print("All gene IDs are unique within each species")
 
     print("\n" + "="*80)
     print("STEP 3: PARSE ALIGNMENTS")
@@ -2035,6 +2107,69 @@ if __name__ == '__main__':
             all_species.update(chr_data.keys())
 
     print(f"Loaded alignments: {len(alignments)} reference species, {len(all_species)} total species involved")
+
+    if BLAST_MODE == 'all-vs-all':
+        print("\n" + "="*80)
+        print("STEP 3.5: ALL-VS-ALL BLAST/CLASP")
+        print("="*80)
+
+        all_vs_all_path = f"{OUTPUT_DIR}/clasp_all_vs_all.pickle" if USE_CLASP else f"{OUTPUT_DIR}/blast_all_vs_all.pickle"
+
+        if not NEW_BLAST and os.path.isfile(all_vs_all_path):
+            print("Loading cached all-vs-all results...")
+            with open(all_vs_all_path, 'rb') as f:
+                all_vs_all_edges = pickle.load(f)
+        else:
+            print("Running all-vs-all BLAST/CLASP...")
+
+            # Extract all protein sequences per species
+            species_fastas = {}
+            for species in parsed:
+                faa_path = os.path.join(FAA_DIR, species + '.faa')
+
+                if os.path.exists(faa_path):
+                    all_pids = set()
+                    for chromo in parsed[species]:
+                        for s, e, strand, pid in parsed[species][chromo]:
+                            all_pids.add(pid)
+
+                    seqs = []
+                    for record in SeqIO.parse(faa_path, "fasta"):
+                        if record.id.split()[0] in all_pids:
+                            seqs.append(record)
+
+                    fasta_path = f"{OUTPUT_DIR}/all_vs_all/{species}.faa"
+                    os.makedirs(f"{OUTPUT_DIR}/all_vs_all", exist_ok=True)
+                    SeqIO.write(seqs, fasta_path, "fasta")
+                    species_fastas[species] = fasta_path
+
+            # Create species pairs for all-vs-all
+            all_species_list = sorted(species_fastas.keys())
+            species_pairs = []
+            for i, sp1 in enumerate(all_species_list):
+                for sp2 in all_species_list[i+1:]:
+                    species_pairs.append((sp1, sp2))
+
+            print(f"  Running BLAST for {len(species_pairs)} species pairs using {NUM_CORES} cores...")
+
+            # Run BLAST for each pair using multiprocessing
+            with mp.Pool(processes=NUM_CORES) as pool:
+                results = pool.map(run_all_vs_all_blast,
+                    [(sp1, sp2, species_fastas[sp1], species_fastas[sp2], OUTPUT_DIR, USE_CLASP, BLASTP_PATH, CLASP_PATH)
+                     for sp1, sp2 in species_pairs])
+
+            # Merge results into single dict
+            all_vs_all_edges = {}
+            for edges_dict in results:
+                all_vs_all_edges.update(edges_dict)
+
+            # Save
+            with open(all_vs_all_path, 'wb') as f:
+                pickle.dump(all_vs_all_edges, f)
+
+            print(f"  Completed all-vs-all: {len(all_vs_all_edges)} edges")
+
+        print(f"\nLoaded {len(all_vs_all_edges)} all-vs-all edges")
 
     print("\n" + "="*80)
     print("STEP 4: MERGE CHAINS WITH GENES")
@@ -2152,7 +2287,7 @@ if __name__ == '__main__':
                 print(f"      ... ({len(elements_in_multiple) - 3} more)")
 
     if total_overlapping_pairs == 0:
-        print("  ✓ No overlapping chains found - each element appears in only one chain per species pair")
+        print("No overlapping chains found - each element appears in only one chain per species pair")
     else:
         print(f"\n  Found {total_overlapping_pairs} species pairs with overlapping chains")
         print(f"  This is expected when MCScanX finds multiple syntenic regions between same species")
@@ -2178,7 +2313,7 @@ if __name__ == '__main__':
     else:
         print(f"Running BLAST for {len(merged)} chains using {NUM_CORES} cores...")
         with mp.Pool(processes=NUM_CORES) as pool:
-            blast_results = pool.map(run_blast_for_chain, [(i, chain, OUTPUT_DIR, FAA_DIR, NEW_BLAST, USE_CLASP) for i, chain in enumerate(merged)])
+            blast_results = pool.map(run_blast_for_chain, [(i, chain, OUTPUT_DIR, FAA_DIR, NEW_BLAST, USE_CLASP, BLASTP_PATH, CLASP_PATH) for i, chain in enumerate(merged)])
 
         with open(blast_results_path, 'wb') as f:
             pickle.dump(blast_results, f)
@@ -2310,10 +2445,16 @@ if __name__ == '__main__':
     print(f"  Removed: {edges_before_v2 - edges_after_v2}")
 
     print("\nSaving both final union graphs...")
+    # Save metadata with graphs for downstream analysis
+    graph_metadata = {
+        'threshold': BLAST_THRESHOLD,
+        'use_clasp': USE_CLASP,
+        'num_cores': NUM_CORES
+    }
     with open(f"{OUTPUT_DIR}/final_union_graph_with_new_edges.pickle", 'wb') as f:
-        pickle.dump((union_v1, gene_species), f)
+        pickle.dump((union_v1, gene_species, graph_metadata), f)
     with open(f"{OUTPUT_DIR}/final_union_graph_no_new_edges.pickle", 'wb') as f:
-        pickle.dump((union_v2, gene_species), f)
+        pickle.dump((union_v2, gene_species, graph_metadata), f)
 
     print("\nSaving alignment results...")
     alignments_dir = f"{OUTPUT_DIR}/alignments"

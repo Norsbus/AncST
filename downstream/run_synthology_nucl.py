@@ -1016,9 +1016,10 @@ parser.add_argument('--blast-mode', type=str, choices=['chains', 'all-vs-all'], 
                     help='chains: BLAST only within synteny (fast); all-vs-all: BLAST all genes for evaluation (slow)')
 parser.add_argument('--blastn-path', type=str, default="blastn", help='path to blastn binary (default: blastn from PATH)')
 parser.add_argument('--clasp-path', type=str, default="../../utils/clasp.x", help='path to clasp.x binary (default: ../../utils/clasp.x)')
+parser.add_argument('--output_dir', type=str, default="synthology_out_nucl", help='output directory for synthology results')
 args = parser.parse_args()
 
-OUTPUT_DIR = "synthology_out_nucl"
+OUTPUT_DIR = args.output_dir
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(f"{OUTPUT_DIR}/to_comp", exist_ok=True)
 os.makedirs(f"{OUTPUT_DIR}/to_comp_out", exist_ok=True)
@@ -2099,7 +2100,7 @@ if __name__ == '__main__':
 
     print("\nValidating unique gene IDs...")
     validate_unique_gene_ids(parsed)
-    print("  ✓ All gene IDs are unique within each species")
+    print("All gene IDs are unique within each species")
 
     print("\n" + "="*80)
     print("STEP 3: PARSE ALIGNMENTS")
@@ -2334,7 +2335,7 @@ if __name__ == '__main__':
                 print(f"      ... ({len(elements_in_multiple) - 3} more)")
 
     if total_overlapping_pairs == 0:
-        print("  ✓ No overlapping chains found - each element appears in only one chain per species pair")
+        print("No overlapping chains found - each element appears in only one chain per species pair")
     else:
         print(f"\n  Found {total_overlapping_pairs} species pairs with overlapping chains")
         print(f"  This is expected when MCScanX finds multiple syntenic regions between same species")
@@ -2498,10 +2499,16 @@ if __name__ == '__main__':
         print(f"  Removed: {edges_before_v2 - edges_after_v2}")
 
     print("\nSaving both final union graphs...")
+    # Save metadata with graphs for downstream analysis
+    graph_metadata = {
+        'threshold': BLAST_THRESHOLD,
+        'use_clasp': USE_CLASP,
+        'num_cores': NUM_CORES
+    }
     with open(f"{OUTPUT_DIR}/final_union_graph_with_new_edges.pickle", 'wb') as f:
-        pickle.dump((union_v1, gene_species), f)
+        pickle.dump((union_v1, gene_species, graph_metadata), f)
     with open(f"{OUTPUT_DIR}/final_union_graph_no_new_edges.pickle", 'wb') as f:
-        pickle.dump((union_v2, gene_species), f)
+        pickle.dump((union_v2, gene_species, graph_metadata), f)
 
     print("\nSaving alignment results...")
     alignments_dir = f"{OUTPUT_DIR}/alignments"

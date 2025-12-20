@@ -1,7 +1,99 @@
-- make sure there is a coords file in the root directory (.. from here)
+## Custom Synteny Visualization
 
-- run draw_synteny with an integer as the first argument,
-for example: ./draw_synteny.py 50000
+### Prerequisites
+
+- Make sure there is a `coords` file in the parent directory (.. from here)
+- The `coords` file should have format: `org chromo start end orientation hit_name`
+- Ensure `pairwise_alignments_table` exists in the current directory
+- Optionally create `plotting_order` file to control track ordering in the figure
+
+### Usage
+
+#### Basic usage with margin:
+```bash
+./draw_verbose.py 50000
+```
+
+#### With reference element (org, chromosome, start position):
+```bash
+./draw_verbose.py 50000 GCF_016746395.2 NC_052520.2 80300
+```
+
+#### Auto-generate plotting order:
+```bash
+./draw_verbose.py 50000 --auto-order
+```
+
+#### Custom file paths:
+```bash
+./draw_verbose.py 50000 --coords-file ../coords --alignments-file pairwise_alignments_table --output-dir my_images
+```
+
+#### Using GFF files instead of coords:
+```bash
+./draw_verbose.py 50000 --gff-dir ~/test_out_dir/out/stable/synthology/halos/gff
+# Or with explicit alignments file
+./draw_verbose.py 50000 --gff-dir path/to/gff/files --alignments-file pairwise_alignments_table
+
+# Draw ALL elements from GFF files (not just connected component from reference)
+./draw_verbose.py 50000 --gff-dir ~/test_out_dir/out/stable/synthology/halos/gff --draw-all-elements
+```
+
+### Options
+
+- `MARGIN` (required): Integer margin around elements in base pairs (e.g., 50000)
+- `REF_ORG REF_CHROMO REF_START` (optional): Reference element to focus on
+- `--coords-file`: Path to coords file (default: ../coords)
+- `--gff-dir`: Path to directory containing GFF files (use instead of --coords-file)
+- `--alignments-file`: Path to pairwise alignments table (default: pairwise_alignments_table)
+- `--output-dir`: Output directory for images (default: images_draw_verbose)
+- `--auto-order`: Auto-generate plotting_order file before drawing
+- `--draw-all-elements`: Draw all elements with alignments (all connected components, not just reference component)
+
+### Input Formats
+
+#### Coords file format:
+```
+org chromo start end orientation hit_name
+```
+Example:
+```
+GCF_000001215.4 NT_033779.5 11756 12205 forward halo
+GCF_016746365.2 NC_052527.2 63243 63692 forward halo_ortholog
+```
+
+#### GFF directory:
+- Directory should contain one or more `.gff` or `.gff3` files
+- Each filename should be the organism ID (e.g., `GCF_000001215.4.gff`)
+- Standard GFF3 format with CDS features
+- Gene names extracted from `gene=` or `Name=` attributes
+
+### Advanced: Plotting Order
+
+To control the order of tracks in the figure, create a `plotting_order` file with one line per track:
+```
+GCF_016746395.2 NC_052520.2
+GCF_016746365.2 NC_052527.2
+GCF_030788295.1 NC_091546.1
+```
+
+Or use `--auto-order` to generate this automatically based on alignment coverage.
+
+### How Element Selection Works
+
+By default, the script uses **connectivity-based filtering**: starting from a reference element, it finds all elements transitively connected through alignments (one connected component). This ensures the figure shows a coherent syntenic region.
+
+With `--draw-all-elements`, the script:
+1. Finds **all connected components** in the alignment graph
+2. Draws elements from all components on one figure
+3. Orients chromosomes within each component relative to a reference in that component
+4. Orders tracks by: organism order → chromosome order
+
+This is useful when your GFF files contain multiple independent syntenic regions that you want to visualize together.
+
+### Advanced: Draw All Chromosomes
+
+Create an empty file named `try_to_draw_all` to force orientation calculation for all chromosomes, even if they can't be oriented relative to the reference.
 
 - the number is the number of nucleotides up- and downstream
 of the coordinates in coords considered for synteny analysis

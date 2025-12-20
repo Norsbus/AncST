@@ -261,6 +261,57 @@ def reconcile_collect(res,collect):
     return collect 
 
 
+def parse_gff_dir(gff_dir):
+    """
+    Parse all GFF files in directory
+    Returns list of tuples: (org, chromo, start, end, strand, name)
+    """
+    elements = []
+
+    if not os.path.isdir(gff_dir):
+        print(f"Error: GFF directory not found: {gff_dir}")
+        return elements
+
+    for filename in os.listdir(gff_dir):
+        if not filename.endswith('.gff'):
+            continue
+
+        org = filename.replace('.gff','')
+        gff_file = os.path.join(gff_dir, filename)
+
+        with open(gff_file,'r') as f:
+            for line in f:
+                if line.startswith('#') or not line.strip():
+                    continue
+
+                cols = line.strip().split('\t')
+                if len(cols) < 9:
+                    continue
+
+                seqid = cols[0]
+                feature_type = cols[2]
+                start = cols[3]
+                end = cols[4]
+                strand = cols[6]
+                attributes = cols[8]
+
+                # parse name from attributes
+                name = None
+                for attr in attributes.split(';'):
+                    attr = attr.strip()
+                    if '=' in attr:
+                        key,val = attr.split('=',1)
+                        if key in ['protein_id','gene_id','ID','Name']:
+                            name = val
+                            break
+
+                if name is None:
+                    name = f'{org}_{seqid}_{start}_{end}'
+
+                elements.append((org, seqid, start, end, strand, name))
+
+    return elements
+
 if __name__ == "__main__":
     parser= argparse.ArgumentParser(description='Find Syntenic Regions From List of Genetic Elements of Interest',formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--cores', type=int,nargs='?', default=1,help="number of cores to run with")
@@ -270,9 +321,15 @@ if __name__ == "__main__":
     parser.add_argument('--no_anchors_form_region', type=int,nargs='?', default=4,help="minimum number of anchors to form a'syntenic region'")
     parser.add_argument('--anchor_path', type=str,nargs='?', default='../../utils/anchors/')
     parser.add_argument('--small_meta_path', type=str,nargs='?', default='../../utils/small_meta/')
-    parser.add_argument('--coords', type=str,nargs='?', default='coords',help="file with coordinates of elements of interest in format:species*tab*chr*tab*start*tab*end*tab*strand (+/-)*tab*[optional:name]")
+    parser.add_argument('--coords', type=str,nargs='?',help="file with coordinates of elements of interest in format:species*tab*chr*tab*start*tab*end*tab*strand (+/-)*tab*[optional:name]")
+    parser.add_argument('--gff', type=str,nargs='?',help="directory with GFF files ({org}.gff). Will extract all features. Can be used with --coords")
     parser.add_argument('--coords_to_exclude', type=str,nargs='?',help="file with coordinates of additional elements to exclude from being considered as anchors (in same format as elements of interest: species*tab*chr*tab*start*tab*end*tab*strand(+/-)*tab*[optional:name]. if you happen to know your genomic environment it may be helpful to exclude known elements which should not be considered as synteny anchors since AncST produces <= 5 percent false positives. so if you e.g. want to be rather conservative, are in an environment with complex duplication histories, are working with rather badly assembled genomes, etc. you might want to exclude those elements. on the other hand, this will generally reduce the resolution of synteny anchors and in almost all cases it is fine to leave this option empty and just consider all anchors around since there are additional 'safety' checks and 'fishy' results will show as inconsistent and/or 'too broad' clustering of the regions considered")
+    parser.add_argument('--region_buffer', type=int,nargs='?', default=10000,help="number of nucleotides to extend syntenic region boundaries (buffer/padding to avoid missing genes at edges)")
     args = parser.parse_args()
+
+    if not args.coords and not args.gff:
+        print("Error: Must provide either --coords or --gff (or both)")
+        exit(1)
     if args.cores:
         no_cores = int(args.cores)
     if args.iter:
@@ -287,9 +344,9 @@ if __name__ == "__main__":
         anchor_path = args.anchor_path
     if args.small_meta_path:
         small_meta_path = args.small_meta_path
-    if args.coords:
-        coords_file = args.coords
-    
+    if args.region_buffer:
+        region_buffer = int(args.region_buffer)
+
     aligned_path = f'{anchor_path}/aligned/'
     candidates_path = f'{anchor_path}/candidates/'
 
@@ -313,49 +370,67 @@ if __name__ == "__main__":
     collect = {}
     coords = {}
     coords_to_exclude = {}
-    
-    name_count = 1
-    with open(coords_file) as f:
-        for line in f:
-            line = line.strip().split()
-            if len(line) == 6:
-                org,chromo,start,end,ori,name = line
-            elif len(line) == 5:
-                org,chromo,start,end,ori = line
-                name = f'element_on_line_{name_count}'
-                name_count += 1
-            else:
-                print(line)
-                print('please provide a coodinates file of form species(name of genome/anchors)\tchr\tstart\tend\tstrand (+/-)\t[optional:name]')
-                exit(0)
-            start = int(start)
-            end = int(end)
-            mid = int(start+(end-start)/2)
-            seqids,seqlen = small_meta[org]
-            if chromo not in seqids:
-                print(f'{chromo} not in genome {org}')
-                continue
-            else:
-                print(f'{chromo} in genome {org}')
-            idx_l = seqids.index(chromo)
-            if idx_l > 0:
-                l = seqlen[idx_l-1]
-            else:
-                l = 0
-            len_chr = seqlen[idx_l]
-            mid += l
-            if org not in collect:
-                collect[org] = {}
-                coords[org] = {}
-            collect[org][mid-10000] = {}
-            collect[org][mid] = {}
-            collect[org][mid+10000] = {}
-            if chromo not in coords[org]:
-                coords[org][chromo] = []
-            coords[org][chromo].append((start,end,name))
-            if org not in coords_to_exclude:
-                coords_to_exclude[org] = []
-            coords_to_exclude[org].append((start,end))
+
+    # collect elements from both sources
+    all_elements = []
+
+    # parse GFF if provided
+    if args.gff:
+        gff_elements = parse_gff_dir(args.gff)
+        all_elements.extend(gff_elements)
+        print(f"Loaded {len(gff_elements)} elements from GFF files")
+
+    # parse coords if provided
+    if args.coords:
+        name_count = 1
+        with open(args.coords) as f:
+            for line in f:
+                line = line.strip().split()
+                if len(line) == 6:
+                    org,chromo,start,end,ori,name = line
+                elif len(line) == 5:
+                    org,chromo,start,end,ori = line
+                    name = f'element_on_line_{name_count}'
+                    name_count += 1
+                else:
+                    print(line)
+                    print('please provide a coodinates file of form species(name of genome/anchors)\tchr\tstart\tend\tstrand (+/-)\t[optional:name]')
+                    exit(0)
+                all_elements.append((org,chromo,start,end,ori,name))
+        print(f"Loaded {len(all_elements) - (len(gff_elements) if args.gff else 0)} elements from coords file")
+
+    print(f"Total elements to process: {len(all_elements)}")
+
+    # process all elements
+    for org,chromo,start,end,ori,name in all_elements:
+        start = int(start)
+        end = int(end)
+        mid = int(start+(end-start)/2)
+        seqids,seqlen = small_meta[org]
+        if chromo not in seqids:
+            print(f'{chromo} not in genome {org}')
+            continue
+        else:
+            print(f'{chromo} in genome {org}')
+        idx_l = seqids.index(chromo)
+        if idx_l > 0:
+            l = seqlen[idx_l-1]
+        else:
+            l = 0
+        len_chr = seqlen[idx_l]
+        mid += l
+        if org not in collect:
+            collect[org] = {}
+            coords[org] = {}
+        collect[org][mid-10000] = {}
+        collect[org][mid] = {}
+        collect[org][mid+10000] = {}
+        if chromo not in coords[org]:
+            coords[org][chromo] = []
+        coords[org][chromo].append((start,end,name))
+        if org not in coords_to_exclude:
+            coords_to_exclude[org] = []
+        coords_to_exclude[org].append((start,end))
 
     if args.coords_to_exclude:
         coords_to_exclude_file = args.coords_to_exclude
@@ -412,9 +487,12 @@ if __name__ == "__main__":
     for org,regions in res:
         new_regions[org] = regions
 
+    total_new = sum([len(v) for v in new_regions.values()])
+    print(f'found {total_new} new regions after iteration 1')
+
     for j in range(2,no_iter+1):
 
-        if len(new_regions) == 0:
+        if len(new_regions) == 0 or sum([len(v) for v in new_regions.values()]) == 0:
             print(f'exiting before iteration no {j} since no new regions found')
             break
 
@@ -443,10 +521,13 @@ if __name__ == "__main__":
 
         with mp.Pool(processes=no_cores) as p:
             res = p.starmap(get_new_regions_to_eval,[(margin_to_be_new,org,global_regions[org],old_regions[org]) for org in list(global_regions.keys())])
-       
+
         new_regions = {}
         for org,regions in res:
             new_regions[org] = regions
+
+        total_new = sum([len(v) for v in new_regions.values()])
+        print(f'found {total_new} new regions after iteration {j}')
     
     with mp.Pool(processes=no_cores) as p:
         res = p.starmap(get_coords,[(coords_to_exclude,aligned_path,query_org,target_orgs,regions,-1) for query_org,regions in global_regions.items()])
@@ -623,8 +704,10 @@ if __name__ == "__main__":
                     le = 0
                 len_chr = seqlen[idx_l] - le
                 start -= le
+                start -= region_buffer
                 start = max(0,start)
                 end -= le
+                end += region_buffer
                 end = min(len_chr,end)
                 if chromo_end != chromo:
                     start1 = start
@@ -638,6 +721,7 @@ if __name__ == "__main__":
                         le = 0
                     len_chr = seqlen[idx_l] - le
                     end2 = save_end - le
+                    end2 += region_buffer
                     end2 = min(len_chr,end2)
                     f.write(f'{org}\t{chromo_end}\t{start2}\t{end2}\tPOT BP2\n')
                 else:
