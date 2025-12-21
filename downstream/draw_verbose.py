@@ -812,19 +812,18 @@ for comp_idx, to_draw in enumerate(components):
             genome_sizes[name].append((int(segment.start),int(segment.end)))
             tot_lens[org] += int(segment.end) - int(segment.start)
         if len(seg_labs) > 0:
+            # For reverse tracks, convert visualization coords back to genomic coords
             seg_labels = []
             seg_labs = sorted(seg_labs)
-            tot_len = max(x[1] for x in seg_labs) - min(x[0] for x in seg_labs)
-            cur_size = tot_len
-            for i,t in enumerate(seg_labs[:-1]):
-                s,e = t
-                len_seg = e-s
-                seg_labels.append(f'{cur_size} - {cur_size-len_seg}')
-                cur_size = cur_size - len_seg - (seg_labs[i+1][0] - e)
-            s = seg_labs[-1][0]
-            e = seg_labs[-1][1]
-            len_seg = e-s
-            seg_labels.append(f'{cur_size} - {cur_size-len_seg}')
+            for s,e in seg_labs:
+                # Convert from visualization space back to genomic space
+                # turn() did: new_end = genome_size - start; new_start = new_end - (end-start)
+                # So reverse: genomic_start = shift + (genome_size - viz_end)
+                #            genomic_end = shift + (genome_size - viz_start)
+                genomic_start = shift + (genome_size - e)
+                genomic_end = shift + (genome_size - s)
+                # Show in decreasing order for reverse strand
+                seg_labels.append(f'{int(genomic_end)} - {int(genomic_start)}')
             for i,s in enumerate(track.segments):
                 s.add_sublabel(seg_labels[i])
         track.set_segment_sep(symbol="//")
