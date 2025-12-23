@@ -20,7 +20,7 @@ def overlaps(x,y):
 if __name__ == "__main__":
 
     orgs = []
-    with open('orgs') as f:
+    with open('compute_anchors_for') as f:
         for line in f:
             orgs.append(line.strip())
 
