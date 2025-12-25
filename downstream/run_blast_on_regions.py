@@ -113,19 +113,30 @@ def exec_blast_clasp(org, query, blast_type, evalue, word_size, fastas_dir, outp
                             raise ValueError(f"CLASP C-line has {len(cols)} columns, expected 8. Line: {line.strip()}")
                         orig_prot = cols[1]
                         id_region = cols[2]
-                        split_id = id_region.split('_')
-                        chromo = split_id[2]
+
+                        # Parse BLAST subject ID format: {org}_{chr}_{start}_{end}_{orientation}
+                        # Robust parsing: strip known org prefix, parse backwards from end
+
+                        # Verify subject ID starts with expected org name
+                        if not id_region.startswith(org + '_'):
+                            raise ValueError(f"BLAST subject ID doesn't start with org '{org}': {id_region}")
+
+                        # Remove org prefix
+                        after_org = id_region[len(org)+1:]  # Strip "org_"
+
+                        # Now after_org is: {chr}_{start}_{end}_{orientation}
+                        # Parse from right: last 3 parts are start, end, orientation
+                        parts = after_org.split('_')
+
                         try:
-                            shift = int(split_id[3])
-                        except:
-                            # chromosome name has underscores
-                            for j in range(3,len(split_id)):
-                                try:
-                                    shift = int(split_id[j])
-                                    chromo = '_'.join(split_id[2:j])
-                                    break
-                                except:
-                                    continue
+                            shift = int(parts[-3])  # start position
+                            end_pos = int(parts[-2])  # end position (for validation)
+                            orientation_suffix = parts[-1]  # should be 'forward' or 'reverse'
+                        except (ValueError, IndexError):
+                            raise ValueError(f"Cannot parse positions from BLAST subject ID: {id_region}")
+
+                        # Chromosome is everything before the last 3 parts
+                        chromo = '_'.join(parts[:-3])
 
                         sstart = int(cols[5])
                         send = int(cols[6])
