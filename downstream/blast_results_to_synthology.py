@@ -208,7 +208,7 @@ def process_org(org,input_dir,genomes_dir,output_dir,mode,deduplicate_overlaps=F
         if provided_seq is not None and mode == 'protein':
             seq_obj = Seq(provided_seq)
             record = SeqRecord(seq_obj, id=gene_id, description="")
-            sequences[gene_id] = (record,chromo,start,end)
+            sequences[gene_id] = (record,chromo,start,end,orientation)
             continue
 
         # otherwise extract from genome
@@ -226,13 +226,13 @@ def process_org(org,input_dir,genomes_dir,output_dir,mode,deduplicate_overlaps=F
             except:
                 continue
             record = SeqRecord(prot_seq, id=gene_id, description="")
-            sequences[gene_id] = (record,chromo,start,end)
+            sequences[gene_id] = (record,chromo,start,end,orientation)
         else:
             # nucleotide mode - always use full genomic region
             if orientation == 'reverse':
                 nucl_seq = nucl_seq.reverse_complement()
             record = SeqRecord(nucl_seq, id=gene_id, description="")
-            sequences[gene_id] = (record,chromo,start,end)
+            sequences[gene_id] = (record,chromo,start,end,orientation)
 
     if len(sequences) == 0:
         return(0)
@@ -240,16 +240,17 @@ def process_org(org,input_dir,genomes_dir,output_dir,mode,deduplicate_overlaps=F
     # write gff
     run(f'mkdir -p {output_dir}/gff',shell=True)
     with open(f'{output_dir}/gff/{org}.gff','w') as f:
-        for gene_id,(record,chromo,start,end) in sorted(sequences.items()):
+        for gene_id,(record,chromo,start,end,orientation) in sorted(sequences.items()):
             # Write proper GFF3 format: seqid source type start end score strand phase attributes
             # Use CDS as type so run_synthology_prot.py will parse it
-            f.write(f'{chromo}\t.\tCDS\t{start}\t{end}\t.\t+\t.\tID={gene_id}\n')
+            strand_symbol = '+' if orientation == 'forward' else '-'
+            f.write(f'{chromo}\t.\tCDS\t{start}\t{end}\t.\t{strand_symbol}\t.\tID={gene_id}\n')
 
     # write sequences
     extension = 'faa' if mode == 'protein' else 'fna'
     seq_dir = 'proteins' if mode == 'protein' else 'nucleotides'
     run(f'mkdir -p {output_dir}/{seq_dir}',shell=True)
-    records = [record for gene_id,(record,chromo,start,end) in sorted(sequences.items())]
+    records = [record for gene_id,(record,chromo,start,end,orientation) in sorted(sequences.items())]
     SeqIO.write(records, f'{output_dir}/{seq_dir}/{org}.{extension}', 'fasta')
 
     return(len(sequences))

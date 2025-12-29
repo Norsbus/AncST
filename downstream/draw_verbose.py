@@ -66,17 +66,14 @@ from os.path import isfile
 
 ### IMPORTANT NOTES $$$
 
+# Configuration constants
+SEGMENT_GAP_THRESHOLD = 500000  # Split track into segments if gap exceeds this (bp)
+ELEMENT_LABEL_MARGIN_TOP = 0.8
+ELEMENT_LABEL_MARGIN_BOTTOM = 2.5
+
 # 1. since the chromsome/contig lengths is not explicitely known here, the drawing can be longer than a chromosome/contig
 
 def parse_gff_directory(gff_dir):
-    """
-    Parse all GFF files in a directory and convert to coords format.
-
-    Returns same structure as coords file parsing:
-    - orgs: list of organism IDs
-    - coords: dict of {org: {chromo: [(start, end, strand, gene_name), ...]}}
-    - to_ori: set of (org, chromo) tuples
-    """
     import os
     from pathlib import Path
 
@@ -204,6 +201,7 @@ parser.add_argument('--alignments-file', default='pairwise_alignments_table', he
 parser.add_argument('--output-dir', default='images_draw_verbose', help='Output directory for images (default: images_draw_verbose)')
 parser.add_argument('--auto-order', action='store_true', help='Auto-generate plotting_order file before drawing')
 parser.add_argument('--draw-all-elements', action='store_true', help='Draw all elements instead of filtering by connectivity to reference')
+parser.add_argument('--no-anchors', action='store_true', help='Skip drawing anchor rectangles (only draw alignment curves). Default: draw anchors.')
 
 args = parser.parse_args()
 
@@ -463,14 +461,35 @@ for comp_idx, to_draw in enumerate(components):
         for chromo,l in x.items():
             if chromo not in tdbib[org]:
                 continue
-            for ele in l:
-                for gene in tdbib[org][chromo]:
-                    if ele[0] >= gene[0]-margin and ele[1] <= gene[1]+margin:
+
+            # When using GFF files: check if anchor has alignments to component chromosomes
+            # instead of proximity to elements (elements are sparse in GFF mode)
+            if args.gff_dir:
+                for ele_start, ele_end, color_set in l:
+                    # Check if this anchor has any alignment to chromosomes in this component
+                    has_component_alignment = False
+                    if (org, chromo, ele_start, ele_end) in alignments:
+                        for ali_org, ali_chromo, ali_start, ali_end, orient in alignments[(org, chromo, ele_start, ele_end)]:
+                            if ali_org in tdbib and ali_chromo in tdbib[ali_org]:
+                                has_component_alignment = True
+                                break
+
+                    if has_component_alignment:
                         if org not in new_bib:
                             new_bib[org] = {}
                         if chromo not in new_bib[org]:
                             new_bib[org][chromo] = []
-                        new_bib[org][chromo].append(ele)
+                        new_bib[org][chromo].append((ele_start, ele_end, color_set))
+            else:
+                # Original behavior: only keep anchors near component elements
+                for ele in l:
+                    for gene in tdbib[org][chromo]:
+                        if ele[0] >= gene[0]-margin and ele[1] <= gene[1]+margin:
+                            if org not in new_bib:
+                                new_bib[org] = {}
+                            if chromo not in new_bib[org]:
+                                new_bib[org][chromo] = []
+                            new_bib[org][chromo].append(ele)
 
     bib = new_bib
 
@@ -787,7 +806,7 @@ for comp_idx, to_draw in enumerate(components):
         while i < len(gene_drawings):
             s2 = gene_drawings[i][0]
             e2 = gene_drawings[i][1]
-            if s2 - e1 > 500000:
+            if s2 - e1 > SEGMENT_GAP_THRESHOLD:
                 target_ranges.append((s1,e1))
                 s1 = s2
             e1 = e2
@@ -838,20 +857,20 @@ for comp_idx, to_draw in enumerate(components):
             end_l -= shift
             if strand == -1:
                 vpos = 'bottom'
-                ymargin = 2.5
+                ymargin = ELEMENT_LABEL_MARGIN_BOTTOM
             else:
                 vpos = 'top'
-                ymargin = 0.8
+                ymargin = ELEMENT_LABEL_MARGIN_TOP
             if ori[(org,chromo)] == 'reverse':
                 start_l,end_l = turn(start_l,end_l,genome_sizes[name])
                 if strand == -1:
                     strand = 1
                     vpos = 'top'
-                    ymargin = 0.8
+                    ymargin = ELEMENT_LABEL_MARGIN_TOP
                 else:
                     strand = -1
                     vpos = 'bottom'
-                    ymargin = 2.5
+                    ymargin = ELEMENT_LABEL_MARGIN_BOTTOM
             
             label = hit_name
             facecolor = 'black'
@@ -861,40 +880,42 @@ for comp_idx, to_draw in enumerate(components):
                     tables[org].write(f'{org}\t{chromo}\t{orig_start}\t{orig_end}\t{strand}\t{label}\t{hit_name}\n')
                 except:
                     pass
-    
-        for start_l,end_l,color,strands in l:
-            if start_l > end_l:
-                start_l,end_l = end_l,start_l
-            cont = 0
-            for coord in coords[org][chromo]:
-                if (start_l >= coord[0] and start_l <= coord[1]) or (end_l >= coord[0] and end_l <= coord[1]) or (start_l <= coord[0] and end_l >= coord[1]) or (start_l >= coord[0] and end_l <= coord[1]):
-                    cont = 1
-                    break
-            if cont == 1:
-                continue
-            start_l = start_l - shift
-            end_l = end_l - shift
-            if ori[(org,chromo)] == 'reverse':
-                start_l,end_l = turn(start_l,end_l,genome_sizes[name])
-            if 'reverse' in strands:
-                strand_l = -1
-            else:
+
+        # Draw anchors (colored rectangles showing pairwise alignments)
+        if not args.no_anchors:
+            for start_l,end_l,color,strands in l:
+                if start_l > end_l:
+                    start_l,end_l = end_l,start_l
+                cont = 0
+                for coord in coords[org][chromo]:
+                    if (start_l >= coord[0] and start_l <= coord[1]) or (end_l >= coord[0] and end_l <= coord[1]) or (start_l <= coord[0] and end_l >= coord[1]) or (start_l >= coord[0] and end_l <= coord[1]):
+                        cont = 1
+                        break
+                if cont == 1:
+                    continue
+                start_l = start_l - shift
+                end_l = end_l - shift
+                if ori[(org,chromo)] == 'reverse':
+                    start_l,end_l = turn(start_l,end_l,genome_sizes[name])
+                if 'reverse' in strands:
+                    strand_l = -1
+                else:
+                    strand_l = 1
+                if tuple(color) not in used:
+                    used[tuple(color)] = color_counter
+                    color_counter += 1
+                label = ''
                 strand_l = 1
-            if tuple(color) not in used:
-                used[tuple(color)] = color_counter
-                color_counter += 1
-            label = ''
-            strand_l = 1
-            added = 0
-            for segment in track.segments:
-                try:
-                    segment.add_feature(start_l,end_l,facecolor=color,strand = strand_l,plotstyle='arrow',label=label)
-                    added = 1
-                    no_anchors[org] += 1
-                except:
-                    pass
-            if added == 0:
-                print(f'CANNOT ADD anchor of {org} {chromo} {start_l} {end_l} {strands}...probably out of range: genome_size = {genome_size}')
+                added = 0
+                for segment in track.segments:
+                    try:
+                        segment.add_feature(start_l,end_l,facecolor=color,strand = strand_l,plotstyle='arrow',label=label)
+                        added = 1
+                        no_anchors[org] += 1
+                    except:
+                        pass
+                if added == 0:
+                    print(f'CANNOT ADD anchor of {org} {chromo} {start_l} {end_l} {strands}...probably out of range: genome_size = {genome_size}')
 
     done = {}
     for t1,l in alignments.items():
