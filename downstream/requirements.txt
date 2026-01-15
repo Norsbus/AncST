@@ -34,3 +34,90 @@ ete3==3.1.3
 tralda>=0.2.0
 pygenomeviz==1.3.0
 pandas~=2.0.3
+
+# ==============================================================================
+# OPTIONAL: Phylogenetic Refinement Tools
+# ==============================================================================
+# Only needed if you want to run refine_synorthogroups_with_phylogeny.py
+# to distinguish orthologs from paralogs within SynOrthogroups.
+# The main synthology pipeline works fine without these tools.
+#
+# For phylogenetic refinement (if using refine_synorthogroups_with_phylogeny.py):
+#   - MAFFT: Multiple sequence alignment (needed for refinement)
+#   - IQ-TREE 2: Maximum likelihood gene tree inference (needed for refinement)
+#   - GeneRax: Gene/species tree reconciliation (optional even within refinement)
+#   - Notung: Alternative reconciliation tool (optional even within refinement)
+#
+# Installation Options:
+#
+# 1. macOS (via Homebrew - RECOMMENDED):
+#    brew install mafft
+#    # IQ-TREE 2 - download from GitHub releases:
+#    # https://github.com/iqtree/iqtree2/releases
+#    # Extract and copy iqtree2 binary to ~/bin/ or /usr/local/bin/
+#
+# 2. Linux/macOS (via Conda/Bioconda):
+#    conda install -c bioconda mafft iqtree
+#    # Optional: GeneRax (compile from source)
+#    # git clone https://github.com/BenoitMorel/GeneRax
+#    # See: https://github.com/BenoitMorel/GeneRax
+#
+# 3. Linux (via package manager):
+#    # Ubuntu/Debian:
+#    sudo apt-get install mafft
+#    # IQ-TREE 2 - download from GitHub releases
+#
+# 4. Direct Downloads (all platforms):
+#    MAFFT: https://mafft.cbrc.jp/alignment/software/
+#    IQ-TREE 2: https://github.com/iqtree/iqtree2/releases
+#    Notung: http://goby.compbio.cs.cmu.edu/Notung/download.html
+#    GeneRax: https://github.com/BenoitMorel/GeneRax (source only)
+#
+# ==============================================================================
+# Reconciliation Tools - Detailed Installation Instructions
+# ==============================================================================
+#
+# NOTUNG 2.9.1.5 (Recommended for reconciliation):
+# ------------------------------------------------
+# Notung is easier to install and works well for most cases.
+#
+# Installation:
+#   1. Download Notung-2.9.1.5.zip from:
+#      http://goby.compbio.cs.cmu.edu/Notung/download.html
+#   2. Unzip and copy Notung-2.9.1.5.jar to ~/bin/
+#   3. Requires Java (tested with Java 23, should work with Java 8+)
+#
+# Usage in refine_synorthogroups_with_phylogeny.py:
+#   --reconciliation-tool notung --notung-path ~/bin/Notung-2.9.1.5.jar
+#
+# Verify installation:
+#   java -version                                    # Check Java is installed
+#   java -jar ~/bin/Notung-2.9.1.5.jar --help        # Should show Notung help
+#
+# GENERAX 2.1.3 (Advanced, ML-based reconciliation):
+# ---------------------------------------------------
+# GeneRax provides more accurate ML-based reconciliation but is harder to install.
+#
+# Option 1 - Conda/Mamba (easiest if you have conda):
+#   conda install -c bioconda generax
+#   # OR with mamba (faster):
+#   mamba install -c bioconda generax
+#
+# Option 2 - Compile from source (macOS/Linux):
+#   Requirements: gcc 5.0+, CMake 3.6+, MPI
+#   git clone --recursive https://github.com/BenoitMorel/GeneRax
+#   cd GeneRax
+#   ./install.sh
+#   # Binary will be in build/bin/generax
+#   # Copy to ~/bin/ or add to PATH
+#
+# Note: GeneRax compilation can be complex. Notung is recommended for most users.
+#
+# Verify installations:
+#    mafft --version                                 # Should show v7.526 or newer
+#    iqtree2 --version                               # Should show 2.4.0 or newer
+#    java -jar ~/bin/Notung-2.9.1.5.jar --help       # Should show Notung help
+#    generax --help                                  # Should show GeneRax help (if installed)
+#
+# Note: These tools are NOT installed via pip. They are standalone binaries
+#       that must be available in your system PATH or specified via command-line arguments.

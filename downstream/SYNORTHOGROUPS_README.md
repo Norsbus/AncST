@@ -238,6 +238,158 @@ Features:
 
 Output saved to `images_synorthogroups/<margin>/SOG*_<N>species_<M>genes.svg`
 
+## Refining SynOrthogroups with Phylogenetic Analysis
+
+SynOrthogroups are derived from connected components in the synthology union graph. This means they include all genes that are directly or transitively connected, which can include both orthologs and paralogs. For SOGs with multiple genes from the same species (paralogs), phylogenetic refinement can help distinguish true orthologs from paralogs.
+
+### Overview
+
+`refine_synorthogroups_with_phylogeny.py` uses state-of-the-art phylogenetic methods to:
+1. Build gene trees for each SOG using multiple sequence alignment and maximum likelihood
+2. Reconcile gene trees with the species tree to identify duplication vs. speciation events
+3. Generate refined ortholog groups based on evolutionary relationships
+
+### Dependencies
+
+Install required tools:
+
+```bash
+# MAFFT (multiple sequence alignment)
+conda install -c bioconda mafft
+
+# IQ-TREE 2 (gene tree reconstruction)
+conda install -c bioconda iqtree
+
+# Optional: GeneRax (gene/species tree reconciliation)
+# See: https://github.com/BenoitMorel/GeneRax
+
+# Optional: Notung (alternative reconciliation tool)
+# Download from: http://www.cs.cmu.edu/~durand/Notung/
+```
+
+### Basic Usage
+
+```bash
+# Refine SOGs with gene tree reconstruction only
+refine_synorthogroups_with_phylogeny.py \
+    synthology_out_prot/synorthogroups/no_new_edges \
+    --faa-dir annotations/proteins \
+    --species-tree ../../utils/NJTree.nwk
+
+# With GeneRax reconciliation
+refine_synorthogroups_with_phylogeny.py \
+    synthology_out_prot/synorthogroups/no_new_edges \
+    --faa-dir annotations/proteins \
+    --species-tree ../../utils/NJTree.nwk \
+    --reconciliation-tool generax
+
+# Test on first 10 SOGs
+refine_synorthogroups_with_phylogeny.py \
+    synthology_out_prot/synorthogroups/no_new_edges \
+    --faa-dir annotations/proteins \
+    --species-tree ../../utils/NJTree.nwk \
+    --max-sogs 10
+```
+
+### What Gets Refined?
+
+The tool automatically identifies SOGs with paralogs (multiple genes from the same species):
+
+```
+Found 47 SynOrthogroups
+SOGs with paralogs (multi-copy): 12
+SOGs without paralogs: 35
+```
+
+Only SOGs with paralogs are processed (single-copy SOGs don't need refinement).
+
+### Output Structure
+
+```
+synorthogroups/no_new_edges/
+└── phylogeny_refinement/
+    ├── refinement_summary.txt
+    ├── refinement_results.pickle
+    ├── SOG0000001/
+    │   ├── SOG0000001.faa            # Extracted sequences
+    │   ├── SOG0000001.aln            # MAFFT alignment
+    │   ├── SOG0000001.treefile       # IQ-TREE gene tree
+    │   ├── SOG0000001.iqtree         # IQ-TREE log
+    │   └── generax/                  # Reconciliation results (if enabled)
+    ├── SOG0000005/
+    │   └── ...
+    └── ...
+```
+
+### Methods
+
+#### Gene Tree Reconstruction
+
+Uses IQ-TREE 2 with:
+- **ModelFinder Plus (MFP)**: Automatically selects best substitution model
+- **Ultrafast Bootstrap (UFBoot)**: 1000 replicates for branch support
+- **Maximum Likelihood**: State-of-the-art accuracy
+
+#### Reconciliation
+
+Two tools supported:
+
+**GeneRax** (recommended):
+- Joint maximum likelihood inference
+- DTL model (Duplication-Transfer-Loss)
+- Co-estimates gene tree and reconciliation
+
+**Notung**:
+- Fast parsimony-based reconciliation
+- Good alternative when GeneRax is unavailable
+
+### Interpreting Results
+
+The `refinement_summary.txt` file reports:
+
+```
+SynOrthogroups Phylogenetic Refinement Summary
+================================================================================
+
+Gene trees built: 12
+Trees reconciled: 12
+Failed: 0
+```
+
+For each SOG:
+- **Gene tree** (`.treefile`): Shows evolutionary relationships among genes
+- **Reconciled tree** (if enabled): Maps duplication/speciation events
+- **IQ-TREE log** (`.iqtree`): Model selection, bootstrap support, tree statistics
+
+### Performance Notes
+
+- **MAFFT**: Fast (~1-10 seconds per SOG)
+- **IQ-TREE**: Moderate (10-60 seconds per SOG depending on size)
+- **GeneRax**: Slow (1-10 minutes per SOG)
+
+For large analyses (100+ SOGs with paralogs), consider:
+1. Running with `--reconciliation-tool none` first to get gene trees
+2. Using `--threads` to parallelize IQ-TREE
+3. Running reconciliation separately on SOGs of interest
+
+### State-of-the-Art Methods (Dec 2024 - Jan 2025)
+
+This tool uses cutting-edge phylogenetic methods:
+
+**Gene Trees**:
+- IQ-TREE 2 (Minh et al. 2020): Best accuracy/speed balance
+- Alternative: FastTree (faster but less accurate)
+
+**Reconciliation**:
+- GeneRax (Morel et al. 2020): Joint ML inference
+- AleRax (NEW 2024): Probabilistic co-estimation
+- Notung (Chen et al. 2000): Fast parsimony
+
+**Comparison to OrthoFinder**:
+- OrthoFinder 2.4+ uses hierarchical orthogroups (HOGs) approach
+- Reported 12-20% more accurate than graph-based methods
+- Synthology adds synteny constraint, complementary to HOGs
+
 ## Troubleshooting
 
 ### "File not found" errors
@@ -261,9 +413,10 @@ This indicates a bug - please report with the specific run directory.
 
 Potential additions (not currently implemented):
 - Pairwise ortholog tables (Species1__v__Species2.tsv)
-- Gene tree inference
-- Duplication event detection
+- ~~Gene tree inference~~ ✓ Implemented (see Phylogenetic Refinement section)
+- ~~Duplication event detection~~ ✓ Implemented via reconciliation
 - FASTA sequence files per orthogroup
+- Automated creation of refined ortholog groups from reconciliation results
 
 ## Citation
 
