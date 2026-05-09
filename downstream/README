@@ -1,0 +1,45 @@
+- you can use conda  or pip and the requirements.txt file, 
+example commands to do that are in requirements.txt
+
+- alternatively, just run and see...its only a few, 
+so errors will tell you whats missing
+e.g. for python you need Biopython and pygenomeviz
+e.g. you need the blast command line tools
+
+
+
+# names of stuff #
+
+- species/organisms are given simple names like {number}org
+e.g., 1org as are there respective chromosomes/scaffolds/contigs
+like {number}orgchr{number}, e.g. 1orgchr1. this is to avoid
+format issues for the downstream program. 
+the correspondence of these names with the actual species names 
+is given in utils/mapping. this file is also used to construct 
+a python dictionary in multiple scripts which can also be used
+to see the correspondence (see e.g. custom/draw_synteny.py).
+furthermore, there is a script "replace_name" in utils/ which
+will take a txt file as the first argument and replace all
+occurences of the fake names with the original names and write
+it to a file whose name/path should be given as the second
+argument
+
+
+# workflow #
+
+- look at the tutorial at https://anchored.bioinf.uni-leipzig.de/ 
+for examples of a workflow with some of the most stable and 
+hopefully most useful parts of AncST. this is mostly in out/stable
+
+- in out/utils there are some...utils
+- in out/gff you can find anchors and alignments in gff3 format
+- in out/scaffolder you find an automated pipeline to scaffold 
+genomes based on homology to closely related species as described 
+in https://www.biorxiv.org/content/10.1101/2025.04.28.650980v2
+
+- in out/experimental there are additional programs which are 
+have been used successfully internally but are probably buggy 
+and not general enough for most data sets to work out of the 
+box at this point (feel free to contact karl.kaether@posteo.de 
+to get help if you think one of those programs could benefit 
+your analysis)

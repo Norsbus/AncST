@@ -1,0 +1,26 @@
+- here you can find the main scripts used to produce the downstream results from the anchors in utils/anchors
+
+1. make_dup_free_ams.py 
+- used to delete the duplicates and their respective matches from the anchor maps. it is mainly intended to give an intution and template of how to loop through and manipulate the anchor maps (== just the python dicts used to store the anchors)
+
+2. make_chr_and_org_mapping_for_gff.py
+- used to make the mapping which gives each genomes and chromosome clear names to avoid string pattern issues with downstream programs. see more in custom/utils
+
+3. compress_maps_and_ignore_multis_with_dups.py 
+- used to delete some redundant info from the anchor maps since they can be used to make transitive matches which has to load all of them in memory
+
+4. get_gff_pairwise_succinct.py 
+- makes input files for third-part tools from anchor maps
+
+5. make_pw_table_from_aligned.py
+- makes a pairwise alignments table which can be used in many ways, here it is specifically needed for the plotting scripts in custom.  for any publication-ready analysis, it is useful to determine exact alignments and the table can be a start. also, it is another example to give intuition for parsing anchor maps.
+
+6. make_clusters.py
+- one way to create transitive matches and coalesce some pairwise alignments into regions. can be very memory-heavy and since it uses recursion it may virutally be stuck forever when using huge datasets or genomes with high content of repetitive elements
+Tip: for clearer implementation use NetworkX on the pairwise matches and find connected components. it can help to use markov clustering on the network before getting the connected components.
+
+8. add_dups_to_anchors.py
+- used to add duplicate candidates (dups) to anchors. mainly for inspiration and experimentation with the dups, e.g. different routine of dealing with the overlapping parts
+
+8. eval_dups_only_syn.py 
+- used to infer orthology of duplicate candidates' alignments based on synteny. here you can change the criteria for a match to be considered "syntenic". e.g. now there need to be 500 blast bit score alignments (cumulative for multiple) both up- and downstream of 100000 nts. -> e.g. just change the 100000 and 500 to adopt other criteria.

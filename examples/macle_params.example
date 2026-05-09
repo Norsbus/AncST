@@ -1,0 +1,21 @@
+# Example macle parameters file for CAncST pipeline.
+# One row per genome. Multiple rows per genome are allowed (one per
+# parameter set); the pipeline will compute and combine all of them.
+#
+# Format: organism w p percentile flag
+#   organism   - genome identifier (matches utils/genomes/<organism>.fasta)
+#   w          - window size (bp)
+#   p          - window pitch (bp)
+#   percentile - filtering percentile (lower = stricter)
+#   flag       - reserved (use 0)
+#
+# Defaults below come from template/pipeline_config.yaml
+# (w=1000, p=50, percentile=42).
+#
+# Usage:
+#   cp examples/macle_params.example template/macle_params.txt
+#   # Or omit and let run_pipeline.sh auto-generate via generate_params.py.
+
+GCF_000001215.4 1000 50 42 0
+GCF_016746365.2 1000 50 42 0
+GCF_016746395.2 1000 50 42 0

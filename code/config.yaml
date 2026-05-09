@@ -1,0 +1,41 @@
+# CAncST Snakefile configuration.
+#
+# Directory paths.
+# NOTE: These are placeholder defaults. The actual paths are auto-detected and
+# passed via --config by run_pipeline.sh. Do not hardcode user-specific paths here.
+
+# Root directory (project root where run_pipeline.sh lives)
+root_dir: "."
+
+# Code directory (contains Snakefile and scripts)
+code_dir: "./code"
+
+# Working directory (where pipeline runs and outputs go)
+work_dir: "./template"
+
+# Execution parameters.
+
+# Number of cores for parallel execution
+cores: 10
+
+# Conda environment name
+conda_env: "snakemake"
+
+# This config can be overridden from command line:
+#   snakemake --config work_dir=other_dir
+#
+# Or use a different config file:
+#   snakemake --configfile my_config.yaml
+#
+# The unified Snakefile will use these paths to locate:
+#   - Input genomes: {root_dir}/utils/genomes/
+#   - GenMap output: {root_dir}/utils/genmap_out/
+#   - macle output: {root_dir}/utils/macle_out/
+#   - BLAST databases: {root_dir}/utils/blastdbs/
+#   - Final anchors: {root_dir}/anchors/
+#
+# Working directory contains:
+#   - Parameter files: params, orgs, compute_anchors_for, etc.
+#   - Intermediate outputs: touch/, logs/, benchmarks/
+#   - Split files: split_out_forward/, split_out_reverse/
+#   - BLAST results: blast_out_*/, clasp_out_*/

@@ -1,0 +1,18 @@
+# Example species file for CAncST pipeline
+# One genome per line
+#
+# Format:
+#   - NCBI accessions (GCF_*/GCA_*) will be auto-downloaded
+#   - Custom names must exist in utils/genomes/{name}.fasta
+#   - Comments (lines starting with #) are ignored
+#   - Blank lines are ignored
+#
+# Usage:
+#   cp examples/orgs.example my_species.txt
+#   # Edit my_species.txt with your genomes
+#   ./run_pipeline.sh --species my_species.txt
+
+# Example: Small test with 3 Drosophila genomes
+GCF_000001215.4
+GCF_016746365.2
+GCF_016746395.2

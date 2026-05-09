@@ -1,0 +1,4 @@
+# GenMap parameters
+# Format: organism K E L I percentile flag
+GCF_000001215.4 13 0 100 0 50 0
+GCF_016746365.2 13 0 100 0 50 0

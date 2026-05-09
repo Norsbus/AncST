@@ -1,0 +1,141 @@
+import os
+from snakemake.io import touch, ancient, directory, expand
+
+# Note: update() is a native Snakemake 9.x directive (no import/definition needed)
+
+# Configuration can be provided via --configfile or --config flags.
+# If config.yaml exists in the code directory, it will be used; otherwise
+# config must be provided via command line.
+
+# Include common setup first (sets environment variables and loads parameters)
+include: "rules/common.smk"
+
+# Environment variable declaration for Snakemake
+envvars:
+    "TMPDIR"
+
+# Include rule files in phase order
+include: "rules/00_preprocessing.smk"
+include: "rules/01_filter_candidates.smk"
+include: "rules/02_self_blast.smk"
+include: "rules/03_update_candidates.smk"
+include: "rules/04_duplications.smk"
+include: "rules/05_pairwise_prep.smk"
+include: "rules/06_pairwise_blast.smk"
+include: "rules/07_update_aligned.smk"
+include: "rules/08_validation.smk"
+include: "rules/09_downstream.smk"
+
+# Rule order to resolve ambiguity with aligned file modifications
+# Must be after all includes so all rules are defined
+# Priority order: later rules override earlier ones for the same file
+# All these rules produce anchors/aligned/{organism} as output (in-place updates)
+ruleorder: update_candidates > update_aligned_stage2 > collect_output > resolve_inconsistencies > eval_syn
+
+rule all:
+    """
+    Default target: Complete pipeline through downstream and archives.
+    Runs all stages (1-9) producing final archives in downstream/.
+    """
+    input:
+        # Downstream outputs (including archives)
+        f"{ROOT_DIR}/downstream/touch/archives_done"
+    # NOTE: Removed default_target: True because it causes Snakemake to run this
+    # target even when other targets are explicitly specified (--target anchors_only)
+    # Snakemake uses the first rule as default target automatically
+
+rule validation_only:
+    """
+    Target: Run through validation only (Stages 1-8, no downstream).
+    Produces final anchors/aligned/{org} files with all pairwise matches.
+    """
+    input:
+        expand(f"{WORK_DIR}/touch/checks_done_{{organism}}", organism=ALL_ORGS),
+        expand(f"{WORK_DIR}/touch/checks_succinct_done_{{organism}}", organism=ALL_ORGS),
+        expand(f"{WORK_DIR}/touch/statistics_done_{{organism}}", organism=ALL_ORGS),
+        expand(f"{WORK_DIR}/touch/statistics_succinct_done_{{organism}}", organism=ALL_ORGS)
+
+rule preprocessing_only:
+    """
+    Target: Generate preprocessing indices only (Stage 0).
+    Creates GenMap/macle indices, BLASTdbs, and metadata for all organisms.
+    Stops before filtering windows.
+    """
+    input:
+        get_all_preprocessing_outputs
+
+rule anchors_only:
+    """
+    Target: Generate anchor candidates without pairwise matching (Stages 1-3).
+    """
+    input:
+        expand(f"{WORK_DIR}/touch/update_candidates_done_{{organism}}", organism=COMPUTE_ANCHORS_FOR)
+
+rule pairwise_only:
+    """
+    Target: Run pairwise matching only (assumes anchors exist, Stages 5-8).
+    Does NOT run downstream.
+    """
+    input:
+        expand(f"{WORK_DIR}/touch/checks_done_{{organism}}", organism=ALL_ORGS),
+        expand(f"{WORK_DIR}/touch/statistics_done_{{organism}}", organism=ALL_ORGS)
+
+rule pairwise_downstream:
+    """
+    Target: Run pairwise matching + downstream (assumes anchors exist, Stages 5-9).
+    Useful when anchors already exist and you want full output including archives.
+    """
+    input:
+        f"{ROOT_DIR}/downstream/touch/archives_done"
+
+rule downstream_only:
+    """
+    Target: Run downstream processing only (Stage 9).
+    Assumes validation (Stages 1-8) is already complete.
+    Generates GFF, MCScanX, phylogeny, packaged outputs, and archives.
+    """
+    input:
+        f"{ROOT_DIR}/downstream/touch/archives_done"
+
+# Note: Cleaning is handled by make_directories.py which runs at pipeline start
+# It removes/recreates intermediate directories but preserves anchors/ for safety
+
+rule dag:
+    """
+    Generate DAG visualization of the workflow.
+    Requires graphviz to be installed.
+    """
+    shell:
+        """
+        snakemake --dag | dot -Tpdf > dag.pdf
+        echo "DAG visualization saved to dag.pdf"
+        """
+
+rule rulegraph:
+    """
+    Generate rule graph (simplified DAG showing rule relationships).
+    """
+    shell:
+        """
+        snakemake --rulegraph | dot -Tpdf > rulegraph.pdf
+        echo "Rule graph saved to rulegraph.pdf"
+        """
+
+# Usage notes:
+# To run the full pipeline:
+#   snakemake --cores <N> --use-conda
+#
+# To run specific stages:
+#   snakemake --cores <N> --use-conda filter_only
+#   snakemake --cores <N> --use-conda anchors_only
+#
+# To see execution plan without running:
+#   snakemake --dryrun --printshellcmds
+#
+# To generate DAG visualization:
+#   snakemake --dag | dot -Tpdf > dag.pdf
+#
+# Configuration is loaded from:
+#   1. config.yaml (if exists)
+#   2. Command line: --config work_dir=template code_dir=../code root_dir=..
+#   3. Default values in rules/common.smk

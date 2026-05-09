@@ -1,0 +1,14 @@
+# Example compute_anchors_for file
+# Specifies which organisms to generate anchors FOR
+# Must be a subset of your species file
+#
+# Usage:
+#   cp examples/compute_anchors_for.example my_compute_anchors.txt
+#   # Edit to select subset of species
+#   ./run_pipeline.sh --species my_species.txt --compute-anchors my_compute_anchors.txt
+#
+# If not provided, defaults to all species (all genomes compute anchors)
+
+# Example: Compute anchors for first 2 genomes only
+GCF_000001215.4
+GCF_016746365.2

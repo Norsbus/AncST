@@ -1,0 +1,56 @@
+# Ignore everything
+*
+template/.snakemake
+template/.snakemake/*
+code/.snakemake
+code/.snakemake/*
+tmp/
+
+# But not these files...
+!.gitignore
+!README.md
+!LICENSE
+!install.sh
+!run_pipeline.sh
+!setup_directories.py
+!environment.yml
+!code/*
+!code/profile/*
+!code/rules/*.smk
+!template/*.py
+!template/*.slurm
+!template/dont_update
+!template/filter_params
+!template/orig_params
+!template/chr_mapping
+!template/config.json
+!examples/
+!examples/*
+!utils/*.py
+!utils/*.yml
+!utils/config.json
+!utils/util_code/*
+!utils/make_genmap/*
+!anchors/*.py
+!downstream/*.py
+!scaffolder/*
+!scaffolder/blossom5-v2.05.src
+!scaffolder/blossom5-v2.05.src/*
+!downstream/README*
+!downstream/which_dirs_to_produce_for_global
+!downstream/config.json
+
+# ...even if they are in subdirectories
+!*/
+!*/*
+
+# SAFETY: Always ignore sensitive files (overrides above)
+.env
+*.env
+credentials.json
+secrets.yaml
+*.key
+*.pem
+
+# Never allow pushing to upstream
+NEVER_PUSH_TO_UPSTREAM
