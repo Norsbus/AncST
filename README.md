@@ -58,7 +58,7 @@ If you use AncST, please cite:
 
 1. Käther K, Lemke S, Stadler PF. (2023). Annotation-free Identification of Potential Synteny Anchors. In *International Work-Conference on Bioinformatics and Biomedical Engineering (IWWBIO'23)*, Lect. Notes Comp. Sci., **13919**, 217–230. <https://doi.org/10.1007/978-3-031-34953-9_17>
 2. Käther KK, Remmel A, Lemke S, Stadler PF. (2025). Unbiased anchors for reliable genome-wide synteny detection. *Algorithms for Molecular Biology*, **20**, 5. <https://doi.org/10.1186/s13015-025-00275-9>
-3. Käther KK, Lemke S, Stadler PF. (2025). Anchors for Homology-Based Scaffolding. *bioRxiv* preprint, 2025.04.28.650980. <https://doi.org/10.1101/2025.04.28.650980>
+3. Käther KK, Gatter T, Lemke S, Stadler PF. (2025). Anchors for Homology-Based Scaffolding. *bioRxiv* preprint, 2025.04.28.650980. <https://doi.org/10.1101/2025.04.28.650980v3>
 
 ## License
 
