@@ -8,8 +8,8 @@
 
 - Operating system: Linux/MacOS
 - Python: 3.10+
-- External tools: GenMap, macle, BLAST, clasp.x, NCBI datasets
-- Memory / disk: see GenMap and macle - those are the memory bottlenecks
+- External tools: [GenMap](https://github.com/cpockrandt/genmap), [macle](https://github.com/EvolBioInf/macle), BLAST, clasp.x, NCBI datasets
+- Memory / disk: see [GenMap](https://github.com/cpockrandt/genmap) and [macle](https://github.com/EvolBioInf/macle) — those are the memory bottlenecks
 
 ## Installation
 
@@ -31,7 +31,7 @@ Run `./run_pipeline.sh --help` to see all available options.
 
 Describe the input format(s):
 
-- **Species file** — plain text, one genome identifier per line. They must correspond to {name} of genomes found in utils/genomes/ (create dir if it doesnt exist!) like utils/genomes/{name}.fasta. If they are NCBI accessions and not found in utils/genomes/ the script will automatically download them if NCBI datasets binary is available in path.
+- **Species file** — plain text, one genome identifier per line, see examples/ They must correspond to {name} of genomes found in utils/genomes/ (create dir if it doesnt exist!) like utils/genomes/{name}.fasta. If they are NCBI accessions and not found in utils/genomes/ the script will automatically download them if NCBI datasets binary is available in path.
 
 ## Output
 
@@ -50,14 +50,14 @@ Key configuration files:
 - `template/genmap_params.txt` / `template/macle_params.txt` / `template/dups_params.txt`— per-organism parameter sets (generated at run time if not provided, otherwise see examples/)
 
 ## Webserver/Tutorial
-There is a webserver at [https://anchored.bioinf.uni-leipzig.de/](https://anchored.bioinf.uni-leipzig.de/) implementing this pipeline where users can run jobs on our server. On this website there also exist a tutorials for downstream application of AncST anchors and respective homology-based scaffolding. Moreover, precomputed anchor candidates and publicly available sets of computed anchors can be downloaded.
+There is a webserver at [https://anchored.bioinf.uni-leipzig.de/](https://anchored.bioinf.uni-leipzig.de/) implementing this pipeline where users can run jobs on our server. On this website there also exist tutorials for downstream application of AncST anchors and respective homology-based scaffolding. Moreover, precomputed anchor candidates and publicly available sets of computed anchors can be downloaded.
 
 ## Citation
 
 If you use AncST, please cite:
 
-1. Käther K, Lemke S, Stadler PF. (2023). Annotation-free Identification of Potential Synteny Anchors. In *International Work-Conference on Bioinformatics and Biomedical Engineering (IWWBIO'23)*, Lect. Notes Comp. Sci., **13919**, 217–230. <https://doi.org/10.1007/978-3-031-34953-9_17>
-2. Käther KK, Remmel A, Lemke S, Stadler PF. (2025). Unbiased anchors for reliable genome-wide synteny detection. *Algorithms for Molecular Biology*, **20**, 5. <https://doi.org/10.1186/s13015-025-00275-9>
+1. Käther K, Lemke S, Stadler PF. (2023). Annotation-free Identification of Potential Synteny Anchors. In *International Work-Conference on Bioinformatics and Biomedical Engineering (IWWBIO'23)*, Lect. Notes Comp. Sci., 13919, 217–230. <https://doi.org/10.1007/978-3-031-34953-9_17>
+2. Käther KK, Remmel A, Lemke S, Stadler PF. (2025). Unbiased anchors for reliable genome-wide synteny detection. *Algorithms for Molecular Biology*, 20, 5. <https://doi.org/10.1186/s13015-025-00275-9>
 3. Käther KK, Gatter T, Lemke S, Stadler PF. (2025). Anchors for Homology-Based Scaffolding. *bioRxiv* preprint, 2025.04.28.650980. <https://doi.org/10.1101/2025.04.28.650980>
 
 ## License
