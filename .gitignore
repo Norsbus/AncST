@@ -13,6 +13,7 @@ tmp/
 !install.sh
 !run_pipeline.sh
 !setup_directories.py
+!verify_installation.py
 !environment.yml
 !code/*
 !code/profile/*
