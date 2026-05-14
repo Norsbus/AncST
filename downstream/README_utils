@@ -1,4 +1,4 @@
-- here are some util scripts and meta data (further described below) and the anchors in python pickles with verbose info ("anchors") and succinct info ("aligned_succinct")
+- here are some util scripts and meta data (further described below) and the anchors in python pickles in the "anchors" subdir (verbose info in "aligned", succinct info in "aligned_succinct", candidates in "candidates")
 
 - phylogeny: based on the anchor alignments, a UPGMA and NJ tree was calculated and is available here. produced by ../scripts_which_produced_these_results/phylogeny_from_anchors.py
 - convert_ncbi_idents.py can be used to convert ncbi accessions back to names like "python3 convert_ncbi_idents.py NJTree.nwk NJTree.nwk_names"

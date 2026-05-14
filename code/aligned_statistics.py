@@ -3,22 +3,26 @@
 import pickle,pathlib
 from statistics import mean,stdev,median
 from sys import argv
+from finalize_aligned import check_eval_syn_reciprocity
 
 def aligned(org):
-    
+
     orgs = []
     with open(f'{work_dir}/orgs','r') as f:
         for l in f:
             orgs.append(l.strip())
-    
+
     size = {}
     for o in orgs:
-        with open(f'{work_dir}/../utils/small_meta/{o}','rb') as f: 
+        with open(f'{work_dir}/../utils/small_meta/{o}','rb') as f:
             seqids,seqlen = pickle.load(f)
         size[o] = seqlen[-1]
 
     with open(f'{anchor_dir}/aligned/{org}','rb') as f:
         anchor_map = pickle.load(f)
+
+    # match the in-memory reciprocity flag from finalize_succinct
+    check_eval_syn_reciprocity(org, anchor_map, anchor_dir, work_dir)
 
     print('-----')
     print(org)
