@@ -291,7 +291,7 @@ if __name__ == "__main__":
     # Handle last region
     if len(new_idx) > 0 and len(regions) > 0:
         last_start, last_end, last_pitch = regions[-1]
-        if new_idx[-1][1] != last_end:
+        if last_start > new_idx[-1][1]:
             new_idx.append((last_start, last_end))
 
     bib = {}

@@ -440,7 +440,7 @@ def combine_and_filter_new_ones(idx,bib=False):
             len_lmers = genmap_info[last_pos][0]
         elif last_pos in macle_info:
             len_lmers = macle_info[last_pos][0]
-        if new_idx[-1][1] != last_pos + len_lmers:
+        if last_pos > new_idx[-1][1]:
             idx_start = last_pos
             ###
             pos = bisect_left(seqlen,last_pos)
