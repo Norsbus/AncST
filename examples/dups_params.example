@@ -1,0 +1,23 @@
+# Example dups parameters file for AncST pipeline.
+# One row per genome. Multiple rows per genome are allowed (one per
+# parameter set); the pipeline will compute and combine all of them.
+#
+# Format: organism k1 e1 k2 e2 w p x1 y1 x2 y2
+#   organism - genome identifier (matches utils/genomes/<organism>.fasta)
+#   k1, e1   - k-mer length / allowed mismatches for initial identification
+#   k2, e2   - k-mer length / allowed mismatches for exclusion
+#   w        - window size (bp)
+#   p        - window pitch (bp)
+#   x1, y1   - max-count threshold and percentage threshold for x1
+#   x2, y2   - exclusion-count threshold and percentage threshold for x2
+#
+# Defaults below come from template/pipeline_config.yaml
+# (k1=50, e1=4, k2=21, e2=2, w=300, p=50, x1=16, y1=90, x2=10, y2=10).
+#
+# Usage:
+#   cp examples/dups_params.example template/dups_params.txt
+#   # Or omit and let run_pipeline.sh auto-generate via generate_params.py.
+
+GCF_000001215.4 50 4 21 2 300 50 16 90 10 10
+GCF_016746365.2 50 4 21 2 300 50 16 90 10 10
+GCF_016746395.2 50 4 21 2 300 50 16 90 10 10

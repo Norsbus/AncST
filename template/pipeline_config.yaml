@@ -1,0 +1,94 @@
+# AncST Pipeline Configuration
+# Central configuration for BLAST, clasp, and other pipeline parameters
+# Can be edited manually or via run_pipeline.sh command-line arguments
+
+# BLAST parameters for self-alignment (detecting duplications within genomes)
+blast:
+  word_size: 11          # Word size for BLAST searches (11 is default)
+  evalue: 1e-3           # E-value threshold for BLAST hits
+  strand: plus           # Strand to search (plus for forward only) - FIXED, do not change
+  outfmt: 6              # BLAST output format (6 = tabular) - FIXED, do not change
+
+# clasp parameters for filtering BLAST results
+# NOTE: Different parameters for self-BLAST vs pairwise comparison
+clasp:
+  # Self-BLAST parameters (for detecting duplications within genomes)
+  l: 0.5                 # Length parameter for self-BLAST
+  e: 0                   # Error parameter for self-BLAST
+  # Pairwise comparison parameters (for bcamm - detecting anchors between genomes)
+  l_pairwise: 2          # Length parameter for pairwise (default was hardcoded in bcamm.py)
+  e_pairwise: 0.1        # Error parameter for pairwise (default was hardcoded in bcamm.py)
+  # Common parameters
+  columns_c: [7, 8, 9, 10, 12]  # Column indices for -c parameter
+  columns_C: [1, 2]      # Column indices for -C parameter
+
+# Score threshold for filtering BLAST/clasp results
+# Used in AWK filter ($8 > score_threshold) and as default score when no self-hit found
+scoring:
+  score_threshold: 40    # Minimum alignment score to keep
+
+# Tolerance for matching
+matching:
+  tolerance: 10000       # Distance tolerance for multiple matches (bp)
+
+# FASTA splitter part sizes (number of sequences per chunk)
+splitting:
+  self_blast_part_size: 100000      # Part size for self-BLAST splitting
+  pairwise_part_size: 10000000      # Part size for pairwise comparison splitting
+
+# Minimum region sizes
+regions:
+  min_anchor_size: 300   # Minimum candidate/anchor length (bp)
+
+# Dups integration parameters (used when merging duplicated regions with candidates)
+dups_integration:
+  overlap_threshold: 0.3   # Max overlap ratio before deleting candidate (30%)
+  gap_size: 100            # Gap (bp) to leave between dup and candidate after shrinking
+
+# Syntenic evaluation parameters (used by finalize_aligned.py eval_syn)
+# Filters dups_matches to identify which are part of real synteny blocks.
+# The same margin is used for both source-side neighbor distance and target-side
+# match proximity checks, which guarantees reciprocal syntenic evaluation results.
+# See finalize_aligned.py eval_syntenic_dups() docstring for details.
+syn_eval:
+  margin: 100000           # Distance (bp) for both neighbor search and target match proximity
+  min_score: 500           # Minimum accumulated score required on EACH side (left and right, in both genomes)
+
+# Memory and time limits for BLAST/clasp subprocesses
+# On OOM/timeout: automatically re-splits and retries
+# RLIMIT_AS only enforced on Linux. On macOS: runs without per-process memory limit.
+# Per-process limit = max_mem_mb / cores (set by run_pipeline.sh from --max-mem and --cores)
+# Use --no-process-mem-limit to disable RLIMIT_AS and OOM splitting
+# Use --no-process-time-limit to disable timeout and timeout splitting
+# Both flags together -> old behavior (no resource checks, just blast->clasp)
+memory:
+  max_mem_mb: null               # Total memory in MB (null = no limit). Set by run_pipeline.sh
+  cores: 1                       # Number of cores. Set by run_pipeline.sh
+  oom_resplit_divisor: 100       # On OOM, split chunk into 1/N of original number of sequences
+  single_seq_part_size: 300      # When single sequence OOMs, split into parts of this size (bp)
+  timeout_self_minutes: 360      # Kill+retry self-blast-clasp after 6h (null = no timeout)
+  timeout_bcamm_minutes: 180     # Kill+retry bcamm after 3h (null = no timeout)
+
+# Default parameters for auto-generation (used by generate_params.py)
+# These are used when --genmap-params, --macle-params, or --dups-params are not provided
+defaults:
+  genmap:
+    e: 0                 # Error threshold for k-mer counting
+    L: 300               # Window length
+    I: 50                # Pitch/interval
+    percentile: 42       # Filtering percentile
+  macle:
+    w: 1000              # Window size
+    p: 50                # Pitch
+    percentile: 42       # Filtering percentile
+  dups:
+    k1: 50               # k-mer size for initial identification
+    e1: 4                # Error for k1
+    k2: 21               # k-mer size for exclusion
+    e2: 2                # Error for k2
+    w: 300               # Window size
+    p: 50                # Pitch
+    x1: 16               # Max count threshold
+    y1: 90               # Percentage threshold for x1
+    x2: 10               # Exclusion count threshold
+    y2: 10               # Percentage threshold for x2

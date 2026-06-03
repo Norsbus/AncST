@@ -1,0 +1,4 @@
+{
+    "directories"   : ["genomes","macle_indices","macle_out","genmap_out","genmap_indices","util_code","metadata_genomes","small_meta","blastdbs","tmp"]
+}
+

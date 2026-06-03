@@ -1,0 +1,23 @@
+# Example GenMap parameters file for AncST pipeline.
+# One row per genome. Multiple rows per genome are allowed (one per
+# parameter set); the pipeline will compute and combine all of them.
+#
+# Format: organism K E L I percentile flag
+#   organism   - genome identifier (matches utils/genomes/<organism>.fasta)
+#   K          - k-mer length (auto-rule of thumb: ceil(log4(genome_size)))
+#   E          - allowed mismatches in k-mer counting
+#   L          - window length (bp)
+#   I          - window pitch / interval (bp)
+#   percentile - filtering percentile (lower = stricter)
+#   flag       - reserved (use 0)
+#
+# Defaults below come from template/pipeline_config.yaml (E=0, L=300, I=50,
+# percentile=42). K=13 is appropriate for ~150-200 Mb Drosophila genomes.
+#
+# Usage:
+#   cp examples/genmap_params.example template/genmap_params.txt
+#   # Or omit and let run_pipeline.sh auto-generate via generate_params.py.
+
+GCF_000001215.4 13 0 300 50 42 0
+GCF_016746365.2 13 0 300 50 42 0
+GCF_016746395.2 13 0 300 50 42 0
