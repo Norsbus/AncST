@@ -1,4 +1,4 @@
-# Project Name
+# AncST
 
 > AncST is an alignment engine designed to produce reciprocal best hits based on their uniqueness within their own genome. It works efficiently using string statistics and can be universally applied to any genome(s). The downstream results contain useful data and scripts to determine macrosynteny with MCScanX, use the anchors for homology-based scaffolding, and provides pipelines to infer orthology relationships with the help of conserved genomic position.
 
@@ -29,13 +29,9 @@ Run `./run_pipeline.sh --help` to see all available options.
 
 ## Input
 
-Describe the input format(s):
-
 - **Species file** — plain text, one genome identifier per line, see examples/ They must correspond to {name} of genomes found in utils/genomes/ (create dir if it doesnt exist!) like utils/genomes/{name}.fasta. If they are NCBI accessions and not found in utils/genomes/ the script will automatically download them if NCBI datasets binary is available in path.
 
 ## Output
-
-What the pipeline produces and where it lives:
 
 - `anchors/<organism>/` — per-genome anchor candidates
 - `anchors/aligned/<organism>` and `anchors/aligned_succinct/<organism>` — pairwise anchor alignments
