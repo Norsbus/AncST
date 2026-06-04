@@ -80,7 +80,13 @@ def check_correspondence_candidates_aligned_maps(org, anchor_dir, tracker):
 
 
 def check_sanity(org, anchor_dir, root_dir, tracker):
-    """Check coordinate sanity: no overlaps, valid boundaries."""
+    """Check coordinate sanity: no overlaps, valid boundaries.
+
+    Length stats (mean/median/stdev) are computed only over anchors that
+    passed every check, so a polluted aligned map doesn't produce misleading
+    summary numbers. The `N/M clean anchors` fraction in the printed line
+    makes any silent filtering visible at a glance.
+    """
     lens = []
 
     with open(f'{anchor_dir}/aligned/{org}', 'rb') as f:
@@ -90,15 +96,23 @@ def check_sanity(org, anchor_dir, root_dir, tracker):
         seqids, seqlen = pickle.load(f)
 
     sorted_i = sorted(am1.keys())
+    n_anchors = len(sorted_i)
+
+    # zero-anchor org: weird (upstream likely produced nothing for this org);
+    # warn so it surfaces in the final summary without flipping validation to FAIL
+    if n_anchors == 0:
+        tracker.warn(f'No anchors in aligned map for {org} -- upstream likely produced empty output')
+
     for ii, i in enumerate(sorted_i):
         start = i
         anchor = am1[i]
         length = anchor['end'] - anchor['start']
-        lens.append(int(length))
         end = i + length
+        anchor_ok = True
 
         if end < start:
             tracker.add(f'Anchor {i} has end < start ({end} < {start}) for {org}')
+            anchor_ok = False
 
         idx = bisect_left(seqlen, start)
         if idx < len(seqlen) and start == seqlen[idx]:
@@ -118,13 +132,26 @@ def check_sanity(org, anchor_dir, root_dir, tracker):
 
         if chromo_start != chromo_end:
             tracker.add(f'Anchor {i} spans chromosomes ({chromo_start} to {chromo_end}) for {org}')
+            anchor_ok = False
 
-        if ii < len(sorted_i) - 1:
+        if ii < n_anchors - 1:
             if end >= sorted_i[ii + 1]:
                 tracker.add(f'Anchors overlap: {i} (end={end}) overlaps with {sorted_i[ii+1]} for {org}')
+                anchor_ok = False
 
-    if lens:
-        print(f'Anchor lengths: mean={mean(lens):.1f}, median={median(lens):.1f}, stdev={stdev(lens):.1f}')
+        if anchor_ok:
+            lens.append(int(length))
+
+    n_clean = len(lens)
+    if n_clean:
+        msg = (f'Anchor lengths over {n_clean}/{n_anchors} clean anchors for {org}: '
+               f'mean={mean(lens):.1f}, median={median(lens):.1f}')
+        if n_clean >= 2:
+            print(f'{msg}, stdev={stdev(lens):.1f}')
+        else:
+            print(f'{msg}  (stdev skipped: n<2)')
+            tracker.warn(f'Only {n_clean} clean anchor(s) for {org} -- stdev undefined; very few anchors is itself suspicious')
+
     print('check_sanity done')
 
 
