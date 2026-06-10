@@ -747,50 +747,67 @@ log_info "Cores: $CORES"
 
 # Step 1: Validate and standardize genome files
 validate_genomes() {
-    log_info "Validating genome files..."
+    log_info "Validating genome files for this job..."
 
-    # Check if genomes directory exists
+    # Check if genomes directory exists (follows the symlink in the slot layout).
     if [[ ! -d "$GENOMES_DIR" ]]; then
         error_exit "Genomes directory not found: $GENOMES_DIR"
     fi
-
-    # Standardize extensions to .fasta
-    local count=0
-    # Enable nullglob to handle non-matching patterns gracefully
-    shopt -s nullglob
-    for ext in fna fa faa; do
-        for file in "$GENOMES_DIR"/*."$ext"; do
-            if [[ -f "$file" ]]; then
-                local basename=$(basename "$file" ."$ext")
-                local newname="${GENOMES_DIR}/${basename}.fasta"
-                if [[ "$file" != "$newname" ]]; then
-                    log_info "Renaming: $(basename "$file") -> ${basename}.fasta"
-                    mv "$file" "$newname"
-                fi
-                ((count++)) || true
-            fi
-        done
-    done
-    # Disable nullglob to restore default behavior
-    shopt -u nullglob
-
-    # Count .fasta files
-    local fasta_count=$(find "$GENOMES_DIR" -maxdepth 1 -name "*.fasta" | wc -l)
-
-    if [[ $fasta_count -eq 0 ]]; then
-        error_exit "No genome files found in $GENOMES_DIR"
+    # ORGS_FILE is written by validate_and_process_species, which runs first.
+    if [[ ! -f "$ORGS_FILE" ]]; then
+        error_exit "Orgs file not found (expected from validate_and_process_species): $ORGS_FILE"
     fi
 
-    log_success "Found $fasta_count genome files"
+    # Validate ONLY the genomes this job needs (the orgs in ORGS_FILE), not the
+    # whole utils/genomes directory. In the comp-server slot layout that directory
+    # is a symlink into a cache shared across slots, so scanning/renaming all of it
+    # every job was both wasteful and a cross-slot mutation hazard. Each org name
+    # equals its on-disk basename ${org}.fasta (same contract used by
+    # validate_and_process_species when it locates ${org}.{fasta,fna,fa,faa}).
+    local count=0
+    local -a missing=()
+    while IFS= read -r org || [[ -n "$org" ]]; do
+        # Mirror validate_and_process_species parsing: skip comments/blanks, trim.
+        [[ "$org" =~ ^[[:space:]]*# ]] && continue
+        org=$(echo "$org" | tr -d '[:space:]')
+        [[ -z "$org" ]] && continue
 
-    # Validate FASTA format (basic check)
-    for fasta in "$GENOMES_DIR"/*.fasta; do
-        if [[ -f "$fasta" ]]; then
-            if ! head -1 "$fasta" | grep -q "^>"; then
-                log_warning "File may not be valid FASTA: $(basename "$fasta")"
+        local target="${GENOMES_DIR}/${org}.fasta"
+        if [[ ! -f "$target" ]]; then
+            # Standardize a non-.fasta extension for THIS org only. Server-side
+            # extraction already yields .fasta (so this is a no-op there); this
+            # keeps standalone use working when a user supplies .fna/.fa/.faa.
+            local found=""
+            for ext in fna fa faa; do
+                if [[ -f "${GENOMES_DIR}/${org}.${ext}" ]]; then
+                    found="${GENOMES_DIR}/${org}.${ext}"
+                    break
+                fi
+            done
+            if [[ -n "$found" ]]; then
+                log_info "Renaming: $(basename "$found") -> ${org}.fasta"
+                mv "$found" "$target"
+            else
+                missing+=("$org")
+                continue
             fi
         fi
-    done
+
+        # Basic FASTA format check (warning only).
+        if ! head -1 "$target" | grep -q "^>"; then
+            log_warning "File may not be valid FASTA: ${org}.fasta"
+        fi
+        ((count++)) || true
+    done < "$ORGS_FILE"
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        error_exit "Missing genome file(s) for this job: ${missing[*]} (looked in $GENOMES_DIR for .fasta/.fna/.fa/.faa)"
+    fi
+    if [[ $count -eq 0 ]]; then
+        error_exit "No genomes required by this job (orgs file empty?): $ORGS_FILE"
+    fi
+
+    log_success "Validated $count genome file(s) for this job"
 }
 
 # Step 3: Create or validate orgs file
