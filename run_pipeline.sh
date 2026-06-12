@@ -72,8 +72,8 @@ SKIP_DUPS=false               # Skip dups auto-generation
 
 CORES=1
 MAX_MEM_MB=""     # Maximum total memory in MB (passed to Snakemake --resources)
-NO_PROC_MEM=false   # --no-process-mem-limit: disable RLIMIT_AS and OOM splitting
-NO_PROC_TIME=false  # --no-process-time-limit: disable timeout and timeout splitting
+PROC_MEM_LIMIT=false   # --process-mem-limit: OPT-IN per-process RLIMIT_AS + OOM splitting (off by default)
+PROC_TIME_LIMIT=false  # --process-time-limit: OPT-IN per-process timeout + timeout splitting (off by default)
 SLURM_MODE=false  # Whether to use SLURM profile instead of --cores
 SLURM_CONFIG=""   # Optional path to custom SLURM config.yaml
 # Pipeline stage range -- replaces the old --target flag with a true stage-range model.
@@ -202,15 +202,22 @@ Optional:
 
   Pipeline options:
   --cores N                  Number of cores to use (default: 1, local execution only)
-  --max-mem MB               Maximum TOTAL memory in MB across all concurrent jobs
-                             (passed to Snakemake with --set-resource-scopes mem_mb=global)
-                             Also sets per-process RLIMIT_AS = max-mem/cores for blast/clasp
-                             (only affects RLIMIT_AS if --no-process-mem-limit is NOT set)
-                             Example: --max-mem 250000 --cores 63 -> ~3.9 GB per process
-  --no-process-mem-limit     Disable per-process RLIMIT_AS and OOM splitting for blast/clasp
-                             (--max-mem still applies to Snakemake job scheduling if set)
-  --no-process-time-limit    Disable per-process timeout and timeout splitting for blast/clasp
-                             (both flags together -> old behavior: no resource checks)
+  --max-mem MB               Maximum TOTAL memory in MB across all concurrent jobs,
+                             passed to Snakemake job scheduling (--resources mem_mb=MB).
+                             Does NOT by itself limit blast/clasp processes; it only
+                             becomes the per-process RLIMIT_AS base (max-mem/cores) when
+                             you ALSO pass --process-mem-limit.
+                             Example: --max-mem 250000 -> Snakemake total budget 250000 MB
+  --process-mem-limit        OPT-IN (OFF by default). Cap each blast/clasp process with
+                             RLIMIT_AS = max-mem/cores and enable OOM splitting/retry.
+                             Base defaults to 100000 MB if --max-mem omitted (warns).
+                             Off by default because RLIMIT_AS caps VIRTUAL address space,
+                             which blast's mmap'd DB blows through on many-core nodes;
+                             prefer letting SLURM cgroups bound real memory instead.
+  --process-time-limit       OPT-IN (OFF by default). Enable per-process timeouts and
+                             timeout splitting/retry for blast/clasp. Durations come from
+                             template/pipeline_config.yaml (timeout_self_minutes=360,
+                             timeout_bcamm_minutes=180); edit there to change them.
   --pairwise-comparisons FILE  Custom pairwise comparisons (TSV: org1<TAB>org2)
                                Overrides default pairing logic (default: auto-generate from compute_anchors_for)
   --slurm PROFILE_DIR        Use SLURM cluster execution with profile directory
@@ -362,12 +369,12 @@ while [[ $# -gt 0 ]]; do
             fi
             shift 2
             ;;
-        --no-process-mem-limit)
-            NO_PROC_MEM=true
+        --process-mem-limit)
+            PROC_MEM_LIMIT=true
             shift
             ;;
-        --no-process-time-limit)
-            NO_PROC_TIME=true
+        --process-time-limit)
+            PROC_TIME_LIMIT=true
             shift
             ;;
         --slurm)
@@ -1111,18 +1118,26 @@ setup_parameters() {
     # Write memory/timeout settings into the work dir config
     sed -i.bak "s/^  cores:.*/  cores: $CORES/" "$PIPELINE_CONFIG_DEST"
 
-    if [[ "$NO_PROC_MEM" == "true" ]]; then
-        # disable RLIMIT_AS — max_mem_mb stays null (template default)
-        log_info "Per-process memory limit DISABLED (--no-process-mem-limit)"
-    else
+    # Per-process limits for blast/clasp are OPT-IN (off by default). RLIMIT_AS caps VIRTUAL
+    # address space, which blast's mmap'd DB + glibc thread arenas blow through on many-core
+    # nodes -> spurious failures; SLURM cgroups bound real RSS instead. Enable explicitly.
+    if [[ "$PROC_MEM_LIMIT" == "true" ]]; then
         EFFECTIVE_MEM=${MAX_MEM_MB:-100000}
-        log_info "Per-process memory limit: ${EFFECTIVE_MEM}MB / ${CORES} cores = $((EFFECTIVE_MEM / CORES))MB"
+        if [[ -z "$MAX_MEM_MB" ]]; then
+            log_warning "--process-mem-limit set without --max-mem; using default base ${EFFECTIVE_MEM}MB (pass --max-mem to control)"
+        fi
+        log_info "Per-process memory limit ENABLED: ${EFFECTIVE_MEM}MB / ${CORES} cores = $((EFFECTIVE_MEM / CORES))MB (RLIMIT_AS)"
         sed -i.bak "s/^  max_mem_mb:.*/  max_mem_mb: $EFFECTIVE_MEM/" "$PIPELINE_CONFIG_DEST"
+    else
+        log_info "Per-process memory limit OFF (default; enable with --process-mem-limit)"
+        sed -i.bak "s/^  max_mem_mb:.*/  max_mem_mb: null/" "$PIPELINE_CONFIG_DEST"
     fi
 
-    if [[ "$NO_PROC_TIME" == "true" ]]; then
-        # disable timeouts — write null for both
-        log_info "Per-process timeout DISABLED (--no-process-time-limit)"
+    if [[ "$PROC_TIME_LIMIT" == "true" ]]; then
+        # keep the template's timeout_self_minutes / timeout_bcamm_minutes (edit there to change)
+        log_info "Per-process timeouts ENABLED (durations from pipeline_config.yaml)"
+    else
+        log_info "Per-process time limit OFF (default; enable with --process-time-limit)"
         sed -i.bak "s/^  timeout_self_minutes:.*/  timeout_self_minutes: null/" "$PIPELINE_CONFIG_DEST"
         sed -i.bak "s/^  timeout_bcamm_minutes:.*/  timeout_bcamm_minutes: null/" "$PIPELINE_CONFIG_DEST"
     fi
