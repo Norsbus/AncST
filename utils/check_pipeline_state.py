@@ -207,8 +207,8 @@ def iter_anchor_pickles(root: Path) -> Iterator[Tuple[str, Path]]:
                     yield sub, f
 
 
-def iter_touch_files(root: Path) -> Iterator[Tuple[str, Path]]:
-    d = root / 'template' / 'touch'
+def iter_touch_files(work_dir: Path) -> Iterator[Tuple[str, Path]]:
+    d = work_dir / 'touch'
     if d.is_dir():
         for f in sorted(d.iterdir()):
             if f.is_file():
@@ -225,11 +225,11 @@ def iter_freq16(root: Path) -> Iterator[Tuple[str, Path]]:
                     yield 'freq16', f
 
 
-def iter_parse_bcamm(root: Path) -> Iterator[Tuple[str, Path]]:
+def iter_parse_bcamm(work_dir: Path) -> Iterator[Tuple[str, Path]]:
     # NOTE: parse_bcamm output files are named *.fasta by historical accident
     # but their content is PICKLE (first byte 0x80 = pickle protocol marker),
     # not FASTA. The category name reflects content, not file extension.
-    base = root / 'template' / 'parse_bcamm'
+    base = work_dir / 'parse_bcamm'
     if base.is_dir():
         for org_dir in sorted(base.iterdir()):
             if org_dir.is_dir():
@@ -237,8 +237,8 @@ def iter_parse_bcamm(root: Path) -> Iterator[Tuple[str, Path]]:
                     yield 'parse_bcamm_pickle', f
 
 
-def iter_sequences_to_compare(root: Path) -> Iterator[Tuple[str, Path]]:
-    base = root / 'template' / 'sequences_to_compare'
+def iter_sequences_to_compare(work_dir: Path) -> Iterator[Tuple[str, Path]]:
+    base = work_dir / 'sequences_to_compare'
     if base.is_dir():
         # Top-level forward.fasta / reverse.fasta per org dir, plus split subdirs.
         for org_dir in sorted(base.iterdir()):
@@ -330,13 +330,13 @@ def per_org_coverage(root: Path, orgs: Iterable[str]) -> list[Report]:
 # CLI + driver.
 # ---------------------------------------------------------------------------
 
-def collect_files(root: Path) -> list[Tuple[str, Path]]:
+def collect_files(root: Path, work_dir: Path) -> list[Tuple[str, Path]]:
     items: list[Tuple[str, Path]] = []
     items.extend(iter_anchor_pickles(root))
-    items.extend(iter_touch_files(root))
+    items.extend(iter_touch_files(work_dir))
     items.extend(iter_freq16(root))
-    items.extend(iter_parse_bcamm(root))
-    items.extend(iter_sequences_to_compare(root))
+    items.extend(iter_parse_bcamm(work_dir))
+    items.extend(iter_sequences_to_compare(work_dir))
     items.extend(iter_macle_out(root))
     return items
 
@@ -352,8 +352,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     p.add_argument('--cores', type=int, default=max(1, (os.cpu_count() or 1) // 2),
                    help='Validation parallelism (ThreadPoolExecutor workers). '
                         'Default: half the visible CPUs (min 1).')
+    p.add_argument('--work-dir', default=None,
+                   help='Work dir holding transient files (touch/, parse_bcamm/, '
+                        'sequences_to_compare/, orgs). Default: <root>/template.')
     p.add_argument('--orgs', default=None,
-                   help='Override path to orgs file. Default: <root>/template/orgs.')
+                   help='Override path to orgs file. Default: <work-dir>/orgs.')
     p.add_argument('--quiet', '-q', action='store_true',
                    help='Suppress per-file lines; print only the summary.')
     p.add_argument('--only-fail', action='store_true',
@@ -406,12 +409,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: root is not a directory: {root}", file=sys.stderr)
         return 2
 
-    orgs_path = Path(args.orgs) if args.orgs else (root / 'template' / 'orgs')
+    work_dir = Path(args.work_dir).resolve() if args.work_dir else (root / 'template')
+    orgs_path = Path(args.orgs) if args.orgs else (work_dir / 'orgs')
     orgs = read_orgs_file(orgs_path)
     if not orgs:
         print(f"warning: no organisms read from {orgs_path}", file=sys.stderr)
 
-    items = collect_files(root)
+    items = collect_files(root, work_dir)
     if not items and not orgs:
         print(f"warning: no output files discovered under {root}", file=sys.stderr)
 

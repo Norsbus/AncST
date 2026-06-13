@@ -5,7 +5,7 @@ from subprocess import run
 from sys import argv
 import pathlib
 
-work_dir = pathlib.Path(__file__).parent.resolve()
+work_dir = pathlib.Path(argv[1]).resolve() if len(argv) > 1 else pathlib.Path(__file__).parent.resolve()
 
 
 def make_directories(directories):

@@ -10,16 +10,21 @@ import yaml
 # Pipeline config loading (split sizes, score thresholds, etc.)
 
 def load_pipeline_config():
-    """Load pipeline configuration from YAML file."""
+    wd = config.get('work_dir')
+    if wd:
+        config_file = pathlib.Path(wd) / 'pipeline_config.yaml'
+        if not config_file.is_file():
+            raise FileNotFoundError(f'no pipeline_config.yaml in {config_file}')
+        with open(config_file, 'r') as f:
+            return yaml.safe_load(f)
+    # fallback: direct snakemake without work_dir
     try:
         code_dir = pathlib.Path(__file__).parent.parent.resolve()  # code/rules -> code
         root_dir = code_dir.parent  # code -> AncST
         config_file = root_dir / 'template' / 'pipeline_config.yaml'
-
         with open(config_file, 'r') as f:
             return yaml.safe_load(f)
     except FileNotFoundError:
-        # Return defaults if config not found
         return {
             'splitting': {'self_blast_part_size': 100000, 'pairwise_part_size': 10000000},
         }

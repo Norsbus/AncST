@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
 from sys import argv
-from subprocesses import blast,clasp,get_mem_limit_bytes,run_blast_clasp_with_retry
+from subprocesses import blast,clasp,get_mem_limit_bytes,run_blast_clasp_with_retry,set_config_dir
 import pathlib
 import os
 
@@ -34,6 +34,7 @@ def blast_clasp_anchor_map_making(orgs_tuple,file,ws):
 if __name__ == "__main__":
     
     work_dir = argv[-1]
+    set_config_dir(work_dir)
     root = str(pathlib.Path(__file__).parents[1])
-    
+
     blast_clasp_anchor_map_making(argv[1],argv[2],argv[3])

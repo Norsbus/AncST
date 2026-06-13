@@ -18,15 +18,18 @@ def main():
     # Get project root
     script_dir = pathlib.Path(__file__).parent.resolve()
 
+    work_dir = sys.argv[1] if len(sys.argv) > 1 else str(script_dir / 'template')
+
     print("=" * 60)
     print("AncST Pipeline - Directory Setup")
     print("=" * 60)
+    print(f"Work dir: {work_dir}")
 
-    # Step 1: Setup template/ directories (CLEAN + RECREATE)
-    print("\n[1/3] Setting up template/ working directories (clean run)...")
+    # Step 1: Setup work-dir (template/ by default) directories (CLEAN + RECREATE)
+    print("\n[1/3] Setting up working directories (clean run)...")
     template_script = script_dir / 'template' / 'make_directories.py'
     if template_script.exists():
-        result = run(['python', str(template_script)], cwd=script_dir / 'template')
+        result = run(['python', str(template_script), work_dir], cwd=script_dir / 'template')
         if result.returncode != 0:
             print(f"ERROR: Failed to setup template directories")
             sys.exit(1)

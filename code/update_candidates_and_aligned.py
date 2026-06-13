@@ -18,7 +18,7 @@ import sys
 import pathlib
 from bisect import bisect_left, bisect_right
 from copy import deepcopy
-from subprocesses import get_min_anchor_size, get_score_threshold, get_overlap_threshold, get_gap_size
+from subprocesses import get_min_anchor_size, get_score_threshold, get_overlap_threshold, get_gap_size, set_config_dir
 
 
 def which_chromo(seqlen, seqids, i):
@@ -380,6 +380,7 @@ def main():
 
     org = sys.argv[1]
     work_dir = sys.argv[2]
+    set_config_dir(work_dir)
 
     root = str(pathlib.Path(__file__).parents[1])
     anchor_dir = root + '/anchors'

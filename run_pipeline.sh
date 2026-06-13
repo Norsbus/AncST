@@ -460,7 +460,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --work-dir)
-            WORK_DIR="$2"
+            WORK_DIR="$(cd "$2" 2>/dev/null && pwd)" || error_exit "--work-dir not accessible: $2"
             shift 2
             ;;
         -h|--help)
@@ -823,7 +823,7 @@ validate_genomes() {
 setup_compute_anchors() {
     log_info "Setting up compute_anchors_for file..."
 
-    # ALWAYS copy to template/, whether user-provided or default
+    # ALWAYS write to the work dir ($WORK_DIR), whether user-provided or default
     # This ensures Snakemake reads the correct file (not a stale placeholder)
     # Sorted + deduped for deterministic pair enumeration (LC_ALL=C for cross-platform byte-wise order).
     if [[ "$USER_PROVIDED_COMPUTE_ANCHORS" == "true" ]]; then
@@ -1026,7 +1026,7 @@ setup_parameters() {
         if [[ ! -f "$GENERATE_SCRIPT" ]]; then
             error_exit "generate_params.py not found"
         fi
-        python "$GENERATE_SCRIPT" --genmap --orgs "$COMPUTE_ANCHORS_FILE" --output "$GENMAP_FINAL" --genomes-dir "$GENOMES_DIR" || error_exit "Failed to generate GenMap parameters"
+        python "$GENERATE_SCRIPT" --genmap --orgs "$COMPUTE_ANCHORS_FILE" --output "$GENMAP_FINAL" --work-dir "$WORK_DIR" --genomes-dir "$GENOMES_DIR" || error_exit "Failed to generate GenMap parameters"
         log_success "GenMap parameters generated: $GENMAP_FINAL"
     else
         log_info "Skipping GenMap parameters"
@@ -1056,7 +1056,7 @@ setup_parameters() {
         if [[ ! -f "$GENERATE_SCRIPT" ]]; then
             error_exit "generate_params.py not found"
         fi
-        python "$GENERATE_SCRIPT" --macle --orgs "$COMPUTE_ANCHORS_FILE" --output "$MACLE_FINAL" --genomes-dir "$GENOMES_DIR" || error_exit "Failed to generate macle parameters"
+        python "$GENERATE_SCRIPT" --macle --orgs "$COMPUTE_ANCHORS_FILE" --output "$MACLE_FINAL" --work-dir "$WORK_DIR" --genomes-dir "$GENOMES_DIR" || error_exit "Failed to generate macle parameters"
         log_success "macle parameters generated: $MACLE_FINAL"
     else
         log_info "Skipping macle parameters"
@@ -1086,7 +1086,7 @@ setup_parameters() {
         if [[ ! -f "$GENERATE_SCRIPT" ]]; then
             error_exit "generate_params.py not found"
         fi
-        python "$GENERATE_SCRIPT" --dups --orgs "$COMPUTE_ANCHORS_FILE" --output "$DUPS_FINAL" --genomes-dir "$GENOMES_DIR" || error_exit "Failed to generate dups parameters"
+        python "$GENERATE_SCRIPT" --dups --orgs "$COMPUTE_ANCHORS_FILE" --output "$DUPS_FINAL" --work-dir "$WORK_DIR" --genomes-dir "$GENOMES_DIR" || error_exit "Failed to generate dups parameters"
         log_success "dups parameters generated: $DUPS_FINAL"
     else
         log_info "Skipping dups parameters"
@@ -1099,23 +1099,8 @@ setup_parameters() {
         fi
     fi
 
-    # Copy pipeline_config.yaml (BLAST/clasp parameters) to work directory
-    # This file is required by update_candidates.py and subprocesses.py
-    PIPELINE_CONFIG_SOURCE="${PROJECT_ROOT}/template/pipeline_config.yaml"
+    # config lives in the work dir; write the runtime cores/mem/timeout into it
     PIPELINE_CONFIG_DEST="${WORK_DIR}/pipeline_config.yaml"
-    if [[ -f "$PIPELINE_CONFIG_SOURCE" ]]; then
-        # Skip if same file, otherwise copy if dest missing or different
-        if [[ "$(get_realpath "$PIPELINE_CONFIG_SOURCE")" != "$(get_realpath "$PIPELINE_CONFIG_DEST" 2>/dev/null)" ]]; then
-            if [[ ! -f "$PIPELINE_CONFIG_DEST" ]] || ! cmp -s "$PIPELINE_CONFIG_SOURCE" "$PIPELINE_CONFIG_DEST"; then
-                cp "$PIPELINE_CONFIG_SOURCE" "$PIPELINE_CONFIG_DEST"
-                log_info "Copied pipeline_config.yaml to: $PIPELINE_CONFIG_DEST"
-            fi
-        fi
-    else
-        error_exit "Required file not found: $PIPELINE_CONFIG_SOURCE"
-    fi
-
-    # Write memory/timeout settings into the work dir config
     sed -i.bak "s/^  cores:.*/  cores: $CORES/" "$PIPELINE_CONFIG_DEST"
 
     # Per-process limits for blast/clasp are OPT-IN (off by default). RLIMIT_AS caps VIRTUAL
@@ -1325,7 +1310,7 @@ setup_all_directories() {
     # Mode 1: Clean run (DEFAULT - always cleans template/)
     log_info "Mode: Clean Run (default)"
     log_info "Cleaning template/ directories"
-    python3 "${PROJECT_ROOT}/setup_directories.py" || error_exit "Directory setup failed"
+    python3 "${PROJECT_ROOT}/setup_directories.py" "$WORK_DIR" || error_exit "Directory setup failed"
     log_success "All directories ready"
 }
 
@@ -1646,7 +1631,7 @@ run_pipeline() {
         SNAKEMAKE_CMD="$SNAKEMAKE_CMD --rerun-triggers mtime"
         log_info "Continue-run: adding --rerun-triggers mtime (overridable via --snakemake-flags)"
         log_info "  If snakemake aborts with IncompleteFilesException, run:"
-        log_info "    python ${PROJECT_ROOT}/utils/check_pipeline_state.py ${PROJECT_ROOT} --cores $CORES"
+        log_info "    python ${PROJECT_ROOT}/utils/check_pipeline_state.py ${PROJECT_ROOT} --work-dir $WORK_DIR --cores $CORES"
         log_info "  for a structural integrity report on pipeline outputs."
 
         # Code-edit-during-resume detection: --rerun-triggers mtime makes snakemake
@@ -1725,7 +1710,7 @@ PY
         log_error "Snakemake exited with status $_SM_RC (output above)."
         if [[ "$CONTINUE_RUN" == "true" ]]; then
             log_error "  If the cause is incomplete files from a prior interrupted run:"
-            log_error "    1) inspect integrity:  python ${PROJECT_ROOT}/utils/check_pipeline_state.py ${PROJECT_ROOT} --cores $CORES"
+            log_error "    1) inspect integrity:  python ${PROJECT_ROOT}/utils/check_pipeline_state.py ${PROJECT_ROOT} --work-dir $WORK_DIR --cores $CORES"
             log_error "    2) clear markers for files you trust:  snakemake --cleanup-metadata <FILE1> <FILE2> ..."
             log_error "    3) delete files you want regenerated, then re-run with --continue-run"
         fi
@@ -1743,9 +1728,10 @@ report_results() {
     log_info "Pipeline Results"
     log_info "=========================================="
 
-    # Count anchors
-    if [[ -d "${WORK_DIR}/anchors" ]]; then
-        local anchor_count=$(find "${WORK_DIR}/anchors" -name "*.fasta" 2>/dev/null | wc -l)
+    # Count anchors. NOTE: anchors live at the project root (anchors/), NOT under
+    # the work dir -- scripts use root + '/anchors' (root-fixed, shared across runs).
+    if [[ -d "${PROJECT_ROOT}/anchors" ]]; then
+        local anchor_count=$(find "${PROJECT_ROOT}/anchors" -name "*.fasta" 2>/dev/null | wc -l)
         log_success "Anchor files generated: $anchor_count"
     fi
 
@@ -1859,7 +1845,47 @@ report_results() {
 }
 
 # Main execution
+validate_work_dir() {
+    log_info "Validating work dir: $WORK_DIR"
+    [[ -d "$WORK_DIR" ]] || error_exit "work dir not found: $WORK_DIR"
+    local report rc=0
+    report=$(WORK_DIR="$WORK_DIR" python3 - <<'PY'
+import os, re, json, sys
+wd = os.environ['WORK_DIR']
+problems = []
+cfg = os.path.join(wd, 'pipeline_config.yaml')
+if not os.path.isfile(cfg):
+    problems.append("missing file: pipeline_config.yaml")
+else:
+    text = open(cfg, encoding='utf-8', errors='replace').read()
+    for key in ('cores', 'max_mem_mb', 'timeout_self_minutes', 'timeout_bcamm_minutes'):
+        if not re.search(r'^  ' + key + r':', text, re.M):
+            problems.append("pipeline_config.yaml: missing '  " + key + ":' line (2-space indent)")
+dc = os.path.join(wd, 'directories_config.json')
+if not os.path.isfile(dc):
+    problems.append("missing file: directories_config.json")
+else:
+    try:
+        d = json.load(open(dc, encoding='utf-8'))
+        if not isinstance(d, dict) or not isinstance(d.get('directories'), list) or not d['directories']:
+            problems.append("directories_config.json: needs a non-empty 'directories' list")
+    except Exception as e:
+        problems.append("directories_config.json: invalid JSON (" + str(e) + ")")
+for p in problems:
+    print(p)
+sys.exit(1 if problems else 0)
+PY
+) || rc=$?
+    if [[ $rc -ne 0 ]]; then
+        log_error "Work dir not usable: $WORK_DIR"
+        while IFS= read -r l; do [[ -n "$l" ]] && log_error "  - $l"; done <<< "$report"
+        error_exit "every required file must be present and correctly formatted in the work dir"
+    fi
+    log_success "Work dir OK"
+}
+
 main() {
+    validate_work_dir             # work dir must have the required files (fail loud)
     validate_and_process_species  # Validates species file, downloads NCBI genomes, creates orgs file
     validate_genomes              # Normalizes extensions (.fna/.fa/.faa -> .fasta) and validates FASTA format
     setup_all_directories         # MUST run first - cleans template/ (would delete files created after)

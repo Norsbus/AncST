@@ -194,7 +194,8 @@ def load_syn_eval_margin(work_dir):
     """Load the syn_eval margin from pipeline config for neighbor verification."""
     config_path = pathlib.Path(work_dir) / 'pipeline_config.yaml'
     if not config_path.exists():
-        return 100000  # default
+        print(f"ERROR: Config file not found: {config_path}", file=sys.stderr)
+        sys.exit(1)
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
     return config.get('syn_eval', {}).get('margin', 100000)

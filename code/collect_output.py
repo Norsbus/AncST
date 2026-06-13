@@ -8,7 +8,7 @@ from subprocess import run
 from multiprocessing import Pool
 import os,pathlib
 from sys import argv
-from subprocesses import blast,clasp,get_tolerance,get_score_threshold
+from subprocesses import blast,clasp,get_tolerance,get_score_threshold,set_config_dir
 from copy import deepcopy
 from pprint import pprint
 
@@ -415,6 +415,7 @@ if __name__ == "__main__":
     anchor_dir_candidates = root + '/anchors/candidates'
     anchor_dir_aligned = root + '/anchors/aligned'
     work_dir = argv[-1]
+    set_config_dir(work_dir)
     
     org = argv[1]
 

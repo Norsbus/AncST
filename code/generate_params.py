@@ -15,28 +15,15 @@ import pathlib
 import yaml
 from math import ceil, log
 
-def load_pipeline_config():
-    """Load pipeline configuration from YAML file."""
-    try:
-        code_dir = pathlib.Path(__file__).parent.resolve()
-        root_dir = code_dir.parent
-        config_file = root_dir / 'template' / 'pipeline_config.yaml'
+def load_pipeline_config(work_dir):
+    config_file = pathlib.Path(work_dir) / 'pipeline_config.yaml'
+    if not config_file.is_file():
+        print(f"ERROR: Config file not found: {config_file}", file=sys.stderr)
+        sys.exit(1)
+    with open(config_file,'r') as f:
+        return yaml.safe_load(f)
 
-        with open(config_file, 'r') as f:
-            return yaml.safe_load(f)
-    except FileNotFoundError:
-        # Return defaults if config not found
-        return {
-            'defaults': {
-                'genmap': {'e': 0, 'L': 300, 'I': 50, 'percentile': 42},
-                'macle': {'w': 1000, 'p': 50, 'percentile': 42},
-                'dups': {'k1': 50, 'e1': 4, 'k2': 21, 'e2': 2, 'w': 300, 'p': 50,
-                         'x1': 16, 'y1': 90, 'x2': 10, 'y2': 10},
-            }
-        }
-
-PIPELINE_CONFIG = load_pipeline_config()
-DEFAULTS = PIPELINE_CONFIG.get('defaults', {})
+DEFAULTS = {}
 
 def get_genome_size(genome_path):
     """Calculate total genome size from FASTA file."""
@@ -174,12 +161,17 @@ def main():
                        help='Path to orgs file (list of genome IDs)')
     parser.add_argument('--output', required=True,
                        help='Output file path for parameters')
+    parser.add_argument('--work-dir', required=True,
+                       help='Work dir containing pipeline_config.yaml')
 
     # Optional arguments
     parser.add_argument('--genomes-dir', default='../utils/genomes',
                        help='Directory containing genome FASTA files')
 
     args = parser.parse_args()
+
+    global DEFAULTS
+    DEFAULTS = load_pipeline_config(args.work_dir).get('defaults', {})
 
     # Validate inputs
     if not os.path.exists(args.orgs):

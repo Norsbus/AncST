@@ -29,55 +29,47 @@ import pickle
 import yaml
 import pathlib
 
-# Load pipeline configuration
-def load_pipeline_config():
-    """Load pipeline configuration from YAML file."""
-    try:
-        # Try to find config relative to this file
-        code_dir = pathlib.Path(__file__).parent.resolve()
-        root_dir = code_dir.parent
-        config_file = root_dir / 'template' / 'pipeline_config.yaml'
+def load_pipeline_config(work_dir):
+    config_file = pathlib.Path(work_dir) / 'pipeline_config.yaml'
+    if not config_file.is_file():
+        raise FileNotFoundError(f'no pipeline_config.yaml in {config_file}')
+    with open(config_file,'r') as f:
+        return yaml.safe_load(f)
 
-        with open(config_file, 'r') as f:
-            return yaml.safe_load(f)
-    except FileNotFoundError:
-        # Return defaults if config not found (maintains backwards compatibility)
-        return {
-            'blast': {'word_size': 11, 'evalue': 1e-3, 'strand': 'plus', 'outfmt': 6},
-            'clasp': {'l': 0.5, 'e': 0, 'columns_c': [7, 8, 9, 10, 12], 'columns_C': [1, 2]},
-            'scoring': {'score_threshold': 40},
-            'matching': {'tolerance': 10000},
-            'splitting': {'self_blast_part_size': 100000, 'pairwise_part_size': 10000000},
-            'regions': {'min_anchor_size': 300},
-            'dups_integration': {'overlap_threshold': 0.3, 'gap_size': 100},
-        }
+_CONFIG = None
 
-# Load config once at module import
-_CONFIG = load_pipeline_config()
+def set_config_dir(work_dir):
+    global _CONFIG
+    _CONFIG = load_pipeline_config(work_dir)
+
+def _cfg():
+    if _CONFIG is None:
+        raise RuntimeError('config not set - call set_config_dir(work_dir) first')
+    return _CONFIG
 
 def get_config():
     """Return the loaded configuration dictionary."""
-    return _CONFIG
+    return _cfg()
 
 def get_score_threshold():
     """Get score threshold for BLAST/clasp filtering (default: 40)."""
-    return _CONFIG.get('scoring', {}).get('score_threshold', 40)
+    return _cfg().get('scoring', {}).get('score_threshold', 40)
 
 def get_tolerance():
     """Get tolerance for multiple match distance in bp (default: 10000)."""
-    return _CONFIG.get('matching', {}).get('tolerance', 10000)
+    return _cfg().get('matching', {}).get('tolerance', 10000)
 
 def get_min_anchor_size():
     """Get minimum anchor/candidate size in bp (default: 300)."""
-    return _CONFIG.get('regions', {}).get('min_anchor_size', 300)
+    return _cfg().get('regions', {}).get('min_anchor_size', 300)
 
 def get_overlap_threshold():
     """Get overlap threshold for dups integration (default: 0.3 = 30%)."""
-    return _CONFIG.get('dups_integration', {}).get('overlap_threshold', 0.3)
+    return _cfg().get('dups_integration', {}).get('overlap_threshold', 0.3)
 
 def get_gap_size():
     """Get gap size in bp for dups shrinking (default: 100)."""
-    return _CONFIG.get('dups_integration', {}).get('gap_size', 100)
+    return _cfg().get('dups_integration', {}).get('gap_size', 100)
 
 def get_split_size(split_type='self_blast'):
     """Get FASTA splitter part size.
@@ -85,13 +77,13 @@ def get_split_size(split_type='self_blast'):
     Args:
         split_type: 'self_blast' (default: 100000) or 'pairwise' (default: 10000000)
     """
-    splitting = _CONFIG.get('splitting', {})
+    splitting = _cfg().get('splitting', {})
     if split_type == 'pairwise':
         return splitting.get('pairwise_part_size', 10000000)
     return splitting.get('self_blast_part_size', 100000)
 
 def get_mem_limit_bytes():
-    mem = _CONFIG.get('memory', {})
+    mem = _cfg().get('memory', {})
     max_mem_mb = mem.get('max_mem_mb', None)
     if max_mem_mb is None:
         return None
@@ -102,7 +94,7 @@ def get_mem_limit_bytes():
 
 def get_timeout_seconds(mode='self'):
     key = 'timeout_bcamm_minutes' if mode == 'pairwise' else 'timeout_self_minutes'
-    mins = _CONFIG.get('memory', {}).get(key)
+    mins = _cfg().get('memory', {}).get(key)
     if mins is None or mins <= 0:
         return None
     return mins * 60
@@ -141,7 +133,7 @@ def split_fasta_for_retry(fasta_path, sub_chunk_size, retry_dir):
     return chunks
 
 def split_single_sequence(fwd_fasta_path, rev_fasta_path, retry_dir):
-    part_size = _CONFIG.get('memory', {}).get('single_seq_part_size', 300)
+    part_size = _cfg().get('memory', {}).get('single_seq_part_size', 300)
     gap = 100
 
     fwd_records = list(SeqIO.parse(fwd_fasta_path, 'fasta'))
@@ -201,7 +193,7 @@ def split_single_sequence(fwd_fasta_path, rev_fasta_path, retry_dir):
     return fwd_split, rev_split
 
 def split_sequences_to_windows(fasta_path, is_reverse=False):
-    part_size = _CONFIG.get('memory', {}).get('single_seq_part_size', 300)
+    part_size = _cfg().get('memory', {}).get('single_seq_part_size', 300)
     gap = 100
     records = list(SeqIO.parse(fasta_path, 'fasta'))
     if not records:
@@ -381,7 +373,7 @@ def run_blast_clasp_with_retry(db, query_fasta, blast_outfile, clasp_outfile,
     if clasp_mode == 'pairwise':
         sub_chunk_size = 1
     else:
-        sub_chunk_size = max(1, n_seqs // _CONFIG.get('memory', {}).get('oom_resplit_divisor', 100))
+        sub_chunk_size = max(1, n_seqs // _cfg().get('memory', {}).get('oom_resplit_divisor', 100))
     sub_chunks = split_fasta_for_retry(query_fasta, sub_chunk_size, retry_dir)
     if sub_chunks is None:
         raise RuntimeError(
@@ -559,10 +551,10 @@ def makeblastdb(org):
 
 def blast(db, query, outfile, word_size=None, mem_limit_bytes=None, timeout_sec=None):
     if word_size is None:
-        word_size = _CONFIG['blast']['word_size']
-    evalue = _CONFIG['blast']['evalue']
-    strand = _CONFIG['blast']['strand']
-    outfmt = _CONFIG['blast']['outfmt']
+        word_size = _cfg()['blast']['word_size']
+    evalue = _cfg()['blast']['evalue']
+    strand = _cfg()['blast']['strand']
+    outfmt = _cfg()['blast']['outfmt']
     cmd = [
         'blastn',
         '-db', db,
@@ -578,15 +570,15 @@ def blast(db, query, outfile, word_size=None, mem_limit_bytes=None, timeout_sec=
 def clasp(infile, outfile, l=None, e=None, mode='self', mem_limit_bytes=None, timeout_sec=None):
     if l is None:
         if mode == 'pairwise':
-            l = _CONFIG['clasp'].get('l_pairwise', 2)
+            l = _cfg()['clasp'].get('l_pairwise', 2)
         else:
-            l = _CONFIG['clasp']['l']
+            l = _cfg()['clasp']['l']
     if e is None:
         if mode == 'pairwise':
-            e = _CONFIG['clasp'].get('e_pairwise', 0.1)
+            e = _cfg()['clasp'].get('e_pairwise', 0.1)
         else:
-            e = _CONFIG['clasp']['e']
-    columns_c = [str(c) for c in _CONFIG['clasp']['columns_c']]
-    columns_C = [str(c) for c in _CONFIG['clasp']['columns_C']]
+            e = _cfg()['clasp']['e']
+    columns_c = [str(c) for c in _cfg()['clasp']['columns_c']]
+    columns_C = [str(c) for c in _cfg()['clasp']['columns_C']]
     cmd = ['clasp.x', '-m', '-i', infile, '-c'] + columns_c + ['-C'] + columns_C + ['-l', str(l), '-e', str(e), '-o', outfile]
     return _run_with_limit(cmd, mem_limit_bytes, timeout_sec)

@@ -8,7 +8,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio import SeqIO
 from subprocess import run
-from subprocesses import get_split_size
+from subprocesses import get_split_size,set_config_dir
 
 def write_fastas(org,outpath,idx,bib):
     with open(f'{root}/utils/metadata_genomes/{org}','rb') as f: 
@@ -84,6 +84,7 @@ if __name__ == "__main__":
     root = str(pathlib.Path(__file__).parents[1])
     anchor_dir = root + '/anchors'
     work_dir = argv[-1]
+    set_config_dir(work_dir)
 
     org = argv[1].strip()
 

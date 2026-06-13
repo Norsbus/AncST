@@ -8,7 +8,7 @@ from subprocess import run
 from multiprocessing import Pool
 import os,pathlib
 from sys import argv
-from subprocesses import blast,clasp,get_tolerance,get_score_threshold
+from subprocesses import blast,clasp,get_tolerance,get_score_threshold,set_config_dir
 
 
 def check_score(score,org1,i_seq_org1,start1,end1,org2,i_seq_org2,start2,end2,strict = 0,max_score = 0):
@@ -275,6 +275,7 @@ if __name__ == "__main__":
     root = str(pathlib.Path(__file__).parents[1])
     anchor_dir_candidates = root + '/anchors/candidates'
     work_dir = argv[-1]
+    set_config_dir(work_dir)
 
     tolerance = get_tolerance()
  

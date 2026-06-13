@@ -8,7 +8,7 @@ from subprocess import run
 from multiprocessing import Pool
 import os,pathlib
 from sys import argv
-from subprocesses import blast,clasp
+from subprocesses import blast,clasp,set_config_dir
 
 
 def inconsistencies(bib,files,org):
@@ -74,6 +74,7 @@ if __name__ == "__main__":
     anchor_dir_candidates = root + '/anchors/candidates'
     anchor_dir_aligned = root + '/anchors/aligned'
     work_dir = argv[-1]
+    set_config_dir(work_dir)
     
     org = argv[1]
 

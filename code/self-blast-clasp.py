@@ -10,7 +10,7 @@ from Bio.SeqRecord import SeqRecord
 from Bio import SeqIO
 from bisect import bisect_left
 import pickle
-from subprocesses import blast,clasp,get_score_threshold,get_mem_limit_bytes,run_blast_clasp_with_retry,coordinate_round2_markers
+from subprocesses import blast,clasp,get_score_threshold,get_mem_limit_bytes,run_blast_clasp_with_retry,coordinate_round2_markers,set_config_dir
 import re
 from collections import Counter
 
@@ -257,6 +257,7 @@ if __name__ == "__main__":
     org = '.'.join(infile.split('.')[:-2])
     
     work_dir = argv[-1]
+    set_config_dir(work_dir)
     root = str(pathlib.Path(__file__).parents[1])
 
     blast_word_sizes = [int(argv[2])]
