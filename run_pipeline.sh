@@ -1988,6 +1988,20 @@ PY
     log_success "Work dir OK"
 }
 
+# Delete downstream outputs frozen by ancient(aligned) so a re-align rebuilds them
+# (mapping/orgs caches + gff/; make_gff3 has no mapping dep so the cascade misses it).
+# Missing output forces the rule. downstream/ only, never anchors/.
+refresh_downstream_outputs() {
+    stage_in_range downstream || return 0
+    local p
+    for p in mapping mapping_pickle orgs_all_matches gff; do
+        if [[ -e "${PROJECT_ROOT}/downstream/${p}" ]]; then
+            rm -rf "${PROJECT_ROOT}/downstream/${p}"
+            log_info "Removed stale downstream/${p} (rebuilt on this downstream run)"
+        fi
+    done
+}
+
 main() {
     validate_work_dir             # work dir must have the required files (fail loud)
     validate_and_process_species  # Validates species file, downloads NCBI genomes, creates orgs file
@@ -2004,6 +2018,7 @@ main() {
     setup_existing_anchor_touch_files  # Create touch files for pre-existing anchors (incremental mode)
     fabricate_touch_files_for_from_stage  # WRITE touch files for stages before FROM_STAGE (post-clean:
                                           # touch/ is wiped by the clean, so fabricate after it)
+    refresh_downstream_outputs    # Drop ancient()-frozen downstream outputs so a re-align doesn't reuse stale ones
     run_pipeline
     report_results
 
