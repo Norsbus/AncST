@@ -8,7 +8,6 @@ from collections import defaultdict
 from Bio import SeqIO
 import networkx as nx
 from subprocess import run
-import sys
 import multiprocessing as mp
 import random
 
@@ -469,14 +468,9 @@ class CographEditor:
 # Scoring parameters
 MATCH_SCORE = 2.0
 GAP_PENALTY = -1.0
-TANDEM_DUP_PENALTY = 1.0
-SEG_DUP_PENALTY = 1.0
-INVERSION_PENALTY = 1.0
-ORIENTATION_FLIP_PENALTY = 0.1
+TANDEM_DUP_PENALTY_PER_ELEMENT = 0.1
 
 MAX_TANDEM_LEN = 20
-MAX_SEG_DUP_LEN = 10
-MAX_INVERSION_LEN = 10
 
 # Operation codes
 MATCH = 1
@@ -484,11 +478,6 @@ GAP_SEQ1 = 2
 GAP_SEQ2 = 3
 TANDEM_DUP_1_TO_Q = 4
 TANDEM_DUP_P_TO_1 = 5
-SEG_DUP_SEQ1 = 6
-SEG_DUP_SEQ2 = 7
-INVERSION = 8
-SEG_DUP_SEQ1_INVERTED = 9
-SEG_DUP_SEQ2_INVERTED = 10
 
 def parse_element_align(element):
     
@@ -514,177 +503,37 @@ def parse_sequence_align(seq):
     return [parse_element_align(s) for s in seq]
 
 def score_match_align(elem1, elem2):
-
     orig_id1, base1, ori1 = elem1
     orig_id2, base2, ori2 = elem2
-
     if base1 == base2:
-        if ori1 != ori2:
-            return MATCH_SCORE - ORIENTATION_FLIP_PENALTY
         return MATCH_SCORE
     else:
         return float('-inf')
 
 def score_tandem_dup_1_to_q_align(elem_a, seq_b_slice):
-    
     q = len(seq_b_slice)
     orig_id_a, base_a, ori_a = elem_a
-
-    orientation_mismatches = 0
     for elem_b in seq_b_slice:
         orig_id_b, base_b, ori_b = elem_b
         if base_a != base_b:
             return float('-inf')
-        if ori_a != ori_b:
-            orientation_mismatches += 1
-
-    total_match = MATCH_SCORE * q
-    penalty = TANDEM_DUP_PENALTY * q
-    penalty += ORIENTATION_FLIP_PENALTY * orientation_mismatches
-    return total_match - penalty
+    return MATCH_SCORE * q - TANDEM_DUP_PENALTY_PER_ELEMENT * q
 
 def score_tandem_dup_p_to_1_align(seq_a_slice, elem_b):
-
     p = len(seq_a_slice)
     orig_id_b, base_b, ori_b = elem_b
-
-    orientation_mismatches = 0
     for elem_a in seq_a_slice:
         orig_id_a, base_a, ori_a = elem_a
         if base_a != base_b:
             return float('-inf')
-        if ori_a != ori_b:
-            orientation_mismatches += 1
-
-    total_match = MATCH_SCORE * p
-    penalty = TANDEM_DUP_PENALTY * p
-    penalty += ORIENTATION_FLIP_PENALTY * orientation_mismatches
-    return total_match - penalty
-
-def score_segmental_dup_seq1_align(seq1, i, block_len, seq2, j, num_copies):
-    
-    target_block = seq2[j - block_len : j]
-
-    orientation_mismatches = 0
-    for copy_idx in range(num_copies):
-        copy_start = i - (num_copies - copy_idx) * block_len
-        copy_end = i - (num_copies - copy_idx - 1) * block_len
-        block = seq1[copy_start : copy_end]
-
-        for k in range(block_len):
-            orig_id_b, base_b, ori_b = block[k]
-            orig_id_t, base_t, ori_t = target_block[k]
-
-            if base_b != base_t:
-                return float('-inf')
-            if ori_b != ori_t:
-                orientation_mismatches += 1
-
-    total_match = MATCH_SCORE * (num_copies * block_len)
-    penalty = SEG_DUP_PENALTY * block_len * (num_copies - 1)
-    penalty += ORIENTATION_FLIP_PENALTY * orientation_mismatches
-    return total_match - penalty
-
-def score_segmental_dup_seq2_align(seq1, i, seq2, j, block_len, num_copies):
-    
-    target_block = seq1[i - block_len : i]
-
-    orientation_mismatches = 0
-    for copy_idx in range(num_copies):
-        copy_start = j - (num_copies - copy_idx) * block_len
-        copy_end = j - (num_copies - copy_idx - 1) * block_len
-        block = seq2[copy_start : copy_end]
-
-        for k in range(block_len):
-            orig_id_b, base_b, ori_b = block[k]
-            orig_id_t, base_t, ori_t = target_block[k]
-
-            if base_b != base_t:
-                return float('-inf')
-            if ori_b != ori_t:
-                orientation_mismatches += 1
-
-    total_match = MATCH_SCORE * (num_copies * block_len)
-    penalty = SEG_DUP_PENALTY * block_len * (num_copies - 1)
-    penalty += ORIENTATION_FLIP_PENALTY * orientation_mismatches
-    return total_match - penalty
-
-def score_inversion_align(seq1, i, inv_len, seq2, j):
-    
-    seq1_block = seq1[i - inv_len : i]
-    seq2_block = seq2[j - inv_len : j]
-    seq2_reversed = seq2_block[::-1]
-
-    for k in range(inv_len):
-        orig_id1, base1, ori1 = seq1_block[k]
-        orig_id2, base2, ori2 = seq2_reversed[k]
-
-        if base1 != base2:
-            return float('-inf')
-
-        if ori1 == ori2:
-            return float('-inf')
-
-    total_match = MATCH_SCORE * inv_len
-    penalty = INVERSION_PENALTY * inv_len
-    return total_match - penalty
-
-def score_segmental_dup_seq1_inverted_align(seq1, i, block_len, seq2, j, num_copies):
-    
-    target_block = seq2[j - block_len : j]
-
-    for copy_idx in range(num_copies):
-        copy_start = i - (num_copies - copy_idx) * block_len
-        copy_end = i - (num_copies - copy_idx - 1) * block_len
-        block = seq1[copy_start : copy_end]
-        block_reversed = block[::-1]
-
-        for k in range(block_len):
-            orig_id_b, base_b, ori_b = block_reversed[k]
-            orig_id_t, base_t, ori_t = target_block[k]
-
-            if base_b != base_t:
-                return float('-inf')
-
-            if ori_b == ori_t:
-                return float('-inf')
-
-    total_match = MATCH_SCORE * (num_copies * block_len)
-    penalty = SEG_DUP_PENALTY * block_len * (num_copies - 1)
-    penalty += INVERSION_PENALTY * block_len * num_copies
-    return total_match - penalty
-
-def score_segmental_dup_seq2_inverted_align(seq1, i, seq2, j, block_len, num_copies):
-    
-    target_block = seq1[i - block_len : i]
-
-    for copy_idx in range(num_copies):
-        copy_start = j - (num_copies - copy_idx) * block_len
-        copy_end = j - (num_copies - copy_idx - 1) * block_len
-        block = seq2[copy_start : copy_end]
-        block_reversed = block[::-1]
-
-        for k in range(block_len):
-            orig_id_b, base_b, ori_b = block_reversed[k]
-            orig_id_t, base_t, ori_t = target_block[k]
-
-            if base_b != base_t:
-                return float('-inf')
-
-            if ori_b == ori_t:
-                return float('-inf')
-
-    total_match = MATCH_SCORE * (num_copies * block_len)
-    penalty = SEG_DUP_PENALTY * block_len * (num_copies - 1)
-    penalty += INVERSION_PENALTY * block_len * num_copies
-    return total_match - penalty
+    return MATCH_SCORE * p - TANDEM_DUP_PENALTY_PER_ELEMENT * p
 
 class AlignGenomicSimpleTuples:
     
 
     @staticmethod
     def align(seq1_strings, seq2_strings):
-        
+
         seq1 = parse_sequence_align(seq1_strings)
         seq2 = parse_sequence_align(seq2_strings)
 
@@ -729,48 +578,6 @@ class AlignGenomicSimpleTuples:
                         break
                     candidates.append((dup_sc, (TANDEM_DUP_1_TO_Q, 1, q)))
 
-                for block_len in range(2, min(j+1, MAX_SEG_DUP_LEN+1)):
-                    for num_copies in range(2, min(i // block_len + 1, MAX_TANDEM_LEN+1)):
-                        if i >= num_copies * block_len and j >= block_len:
-                            seg_sc = score[i - num_copies*block_len][j - block_len] + \
-                                     score_segmental_dup_seq1_align(seq1, i, block_len, seq2, j, num_copies)
-                            if seg_sc == float('-inf'):
-                                break
-                            candidates.append((seg_sc, (SEG_DUP_SEQ1, num_copies*block_len, block_len, block_len, num_copies)))
-
-                for block_len in range(2, min(i+1, MAX_SEG_DUP_LEN+1)):
-                    for num_copies in range(2, min(j // block_len + 1, MAX_TANDEM_LEN+1)):
-                        if i >= block_len and j >= num_copies * block_len:
-                            seg_sc = score[i - block_len][j - num_copies*block_len] + \
-                                     score_segmental_dup_seq2_align(seq1, i, seq2, j, block_len, num_copies)
-                            if seg_sc == float('-inf'):
-                                break
-                            candidates.append((seg_sc, (SEG_DUP_SEQ2, block_len, num_copies*block_len, block_len, num_copies)))
-
-                for inv_len in range(2, min(i+1, j+1, MAX_INVERSION_LEN+1)):
-                    inv_sc = score[i - inv_len][j - inv_len] + \
-                             score_inversion_align(seq1, i, inv_len, seq2, j)
-                    if inv_sc > float('-inf'):
-                        candidates.append((inv_sc, (INVERSION, inv_len, inv_len, inv_len)))
-
-                for block_len in range(2, min(j+1, MAX_SEG_DUP_LEN+1)):
-                    for num_copies in range(2, min(i // block_len + 1, MAX_TANDEM_LEN+1)):
-                        if i >= num_copies * block_len and j >= block_len:
-                            seg_sc = score[i - num_copies*block_len][j - block_len] + \
-                                     score_segmental_dup_seq1_inverted_align(seq1, i, block_len, seq2, j, num_copies)
-                            if seg_sc == float('-inf'):
-                                break
-                            candidates.append((seg_sc, (SEG_DUP_SEQ1_INVERTED, num_copies*block_len, block_len, block_len, num_copies)))
-
-                for block_len in range(2, min(i+1, MAX_SEG_DUP_LEN+1)):
-                    for num_copies in range(2, min(j // block_len + 1, MAX_TANDEM_LEN+1)):
-                        if i >= block_len and j >= num_copies * block_len:
-                            seg_sc = score[i - block_len][j - num_copies*block_len] + \
-                                     score_segmental_dup_seq2_inverted_align(seq1, i, seq2, j, block_len, num_copies)
-                            if seg_sc == float('-inf'):
-                                break
-                            candidates.append((seg_sc, (SEG_DUP_SEQ2_INVERTED, block_len, num_copies*block_len, block_len, num_copies)))
-
                 best_score, best_op = max(candidates, key=lambda x: x[0])
                 score[i][j] = best_score
                 pointer[i][j] = best_op
@@ -814,14 +621,7 @@ class AlignGenomicSimpleTuples:
                 elem2 = seq2[j-1]
                 aligned1.append(elem1)
                 aligned2.append(elem2)
-
-                orig_id1, base1, ori1 = elem1
-                orig_id2, base2, ori2 = elem2
-                if ori1 == ori2:
-                    operations.append(('match', elem1, elem2, 'same_orientation'))
-                else:
-                    operations.append(('match', elem1, elem2, 'orientation_flip'))
-
+                operations.append(('match', elem1, elem2))
                 i -= 1
                 j -= 1
 
@@ -862,118 +662,6 @@ class AlignGenomicSimpleTuples:
                 operations.append(('tandem_dup_seq2', elem1, seq2_dups, q))
                 i -= 1
                 j -= q
-
-            elif op_type == SEG_DUP_SEQ1:
-                block_len = op[3]
-                num_copies = op[4]
-                seq2_block = seq2[j - block_len : j]
-
-                seq1_blocks = []
-                temp_a1, temp_a2 = [], []
-                for copy_idx in range(num_copies):
-                    copy_start = i - (num_copies - copy_idx) * block_len
-                    copy_end = i - (num_copies - copy_idx - 1) * block_len
-                    seq1_block = seq1[copy_start : copy_end]
-                    seq1_blocks.append(seq1_block)
-
-                    for k in range(block_len):
-                        temp_a1.append(seq1_block[k])
-                        temp_a2.append(seq2_block[k] if copy_idx == num_copies - 1 else "DUP")
-
-                aligned1.extend(reversed(temp_a1))
-                aligned2.extend(reversed(temp_a2))
-
-                operations.append(('seg_dup_seq1', seq1_blocks, seq2_block, block_len, num_copies))
-                i -= num_copies * block_len
-                j -= block_len
-
-            elif op_type == SEG_DUP_SEQ2:
-                block_len = op[3]
-                num_copies = op[4]
-                seq1_block = seq1[i - block_len : i]
-
-                seq2_blocks = []
-                temp_a1, temp_a2 = [], []
-                for copy_idx in range(num_copies):
-                    copy_start = j - (num_copies - copy_idx) * block_len
-                    copy_end = j - (num_copies - copy_idx - 1) * block_len
-                    seq2_block = seq2[copy_start : copy_end]
-                    seq2_blocks.append(seq2_block)
-
-                    for k in range(block_len):
-                        temp_a1.append(seq1_block[k] if copy_idx == num_copies - 1 else "DUP")
-                        temp_a2.append(seq2_block[k])
-
-                aligned1.extend(reversed(temp_a1))
-                aligned2.extend(reversed(temp_a2))
-
-                operations.append(('seg_dup_seq2', seq1_block, seq2_blocks, block_len, num_copies))
-                i -= block_len
-                j -= num_copies * block_len
-
-            elif op_type == INVERSION:
-                inv_len = op[3]
-                seq1_block = seq1[i - inv_len : i]
-                seq2_block = seq2[j - inv_len : j]
-                seq2_reversed = seq2_block[::-1]
-
-                for k in range(inv_len - 1, -1, -1):
-                    aligned1.append(seq1_block[k])
-                    aligned2.append(seq2_reversed[k])
-
-                operations.append(('inversion', seq1_block, seq2_block, inv_len))
-                i -= inv_len
-                j -= inv_len
-
-            elif op_type == SEG_DUP_SEQ1_INVERTED:
-                block_len = op[3]
-                num_copies = op[4]
-                seq2_block = seq2[j - block_len : j]
-
-                seq1_blocks = []
-                temp_a1, temp_a2 = [], []
-                for copy_idx in range(num_copies):
-                    copy_start = i - (num_copies - copy_idx) * block_len
-                    copy_end = i - (num_copies - copy_idx - 1) * block_len
-                    seq1_block = seq1[copy_start : copy_end]
-                    seq1_blocks.append(seq1_block)
-                    seq1_reversed = seq1_block[::-1]
-
-                    for k in range(block_len):
-                        temp_a1.append(seq1_reversed[k])
-                        temp_a2.append(seq2_block[k] if copy_idx == num_copies - 1 else "DUP")
-
-                aligned1.extend(reversed(temp_a1))
-                aligned2.extend(reversed(temp_a2))
-
-                operations.append(('seg_dup_seq1_inverted', seq1_blocks, seq2_block, block_len, num_copies))
-                i -= num_copies * block_len
-                j -= block_len
-
-            elif op_type == SEG_DUP_SEQ2_INVERTED:
-                block_len = op[3]
-                num_copies = op[4]
-                seq1_block = seq1[i - block_len : i]
-
-                seq2_blocks = []
-                temp_a1, temp_a2 = [], []
-                for copy_idx in range(num_copies):
-                    copy_start = j - (num_copies - copy_idx) * block_len
-                    copy_end = j - (num_copies - copy_idx - 1) * block_len
-                    seq2_block = seq2[copy_start : copy_end]
-                    seq2_blocks.append(seq2_block)
-                    seq2_reversed = seq2_block[::-1]
-
-                    for k in range(block_len):
-                        temp_a1.append(seq1_block[k] if copy_idx == num_copies - 1 else "DUP")
-                        temp_a2.append(seq2_reversed[k])
-
-                aligned1.extend(reversed(temp_a1))
-                aligned2.extend(reversed(temp_a2))
-
-                operations.append(('seg_dup_seq2_inverted', seq1_block, seq2_blocks, block_len, num_copies))
-                i -= block_len
-                j -= num_copies * block_len
 
             else:
                 raise ValueError(f"Unknown operation: {op_type}")
@@ -1674,8 +1362,7 @@ def align_graph_worker(args):
     org1_elements = []
     for s, e, strand, pid in chain['genes1']:
         if pid in G.nodes():
-            ori = '+' if strand in ['+', 1, '+1'] else '-'
-            org1_elements.append(('gene', s, e, ori, pid))
+            org1_elements.append(('gene', s, e, None, pid))
 
     for aln_node, aln_info in alignments_mapping.items():
         species, chromo, start, end, _, extra = aln_info
@@ -1718,8 +1405,7 @@ def align_graph_worker(args):
     org2_elements = []
     for s, e, strand, pid in chain['genes2']:
         if pid in G.nodes():
-            ori = '+' if strand in ['+', 1, '+1'] else '-'
-            org2_elements.append(('gene', s, e, ori, pid))
+            org2_elements.append(('gene', s, e, None, pid))
 
     for aln_node, aln_info in alignments_mapping.items():
         species, chromo, start, end, _, extra = aln_info
@@ -1759,39 +1445,28 @@ def align_graph_worker(args):
                     org2_filtered.append(('alignment', longest[0], longest[1], None, aln_node))
 
     # Build tuple sequences
-    # Gene nodes: use GFF strand as orientation
-    # Alignment nodes: use chain orientation (org1 side always '+',
-    #   org2 side '+' for forward chains, '-' for reverse chains)
+    # All elements get '+' orientation. Rationale:
+    # - Reverse chains have seq2 reversed to make everything concordant
+    # - After reversal, all elements are effectively in forward order
+    # - Element-level inversions within a chain are rare (~4%)
+    # - The DP scoring ignores orientation entirely (matches on homolog name only)
+    # - Post-DP code also discards orientation info
     seq1 = []
     for elem in org1_filtered:
         elem_type, start, end, ori, node_id = elem
         if node_id in node_to_homolog:
             shared_name = node_to_homolog[node_id]
-            if elem_type == 'gene':
-                seq1.append((node_id, f"{shared_name}{ori}"))
-            else:  # alignment node — org1 side always '+'
-                seq1.append((node_id, f"{shared_name}+"))
+            seq1.append((node_id, f"{shared_name}+"))
 
     seq2 = []
     for elem in org2_filtered:
         elem_type, start, end, ori, node_id = elem
         if node_id in node_to_homolog:
             shared_name = node_to_homolog[node_id]
-            if elem_type == 'gene':
-                seq2.append((node_id, f"{shared_name}{ori}"))
-            else:  # alignment node — use chain orientation
-                aln_ori = '-' if chain['orientation'] == 'reverse' else '+'
-                seq2.append((node_id, f"{shared_name}{aln_ori}"))
+            seq2.append((node_id, f"{shared_name}+"))
 
     if chain['orientation'] == 'reverse':
-        # Biological reversal = reverse complement: reverse order AND flip strands
-        flipped_seq2 = []
-        for node_id, elem_str in seq2:
-            base = elem_str[:-1]
-            ori = elem_str[-1]
-            flipped_ori = '-' if ori == '+' else '+'
-            flipped_seq2.append((node_id, f"{base}{flipped_ori}"))
-        seq2 = flipped_seq2[::-1]
+        seq2 = seq2[::-1]
 
     if not seq1 or not seq2:
         empty_alignment_info = {
@@ -1811,11 +1486,11 @@ def align_graph_worker(args):
         op_type = op[0]
 
         if op_type == 'match':
-            _, elem1, elem2, match_type = op
+            _, elem1, elem2 = op
             if elem1 is not None and elem2 is not None:
                 orig_id1, base1, ori1 = elem1
                 orig_id2, base2, ori2 = elem2
-                new_G.add_edge(orig_id1, orig_id2, event='match', match_type=match_type)
+                new_G.add_edge(orig_id1, orig_id2, event='match')
 
         elif op_type == 'tandem_dup_seq1':
             _, seq1_dups, elem2, p = op
@@ -1832,45 +1507,6 @@ def align_graph_worker(args):
                 for dup_elem in seq2_dups:
                     orig_id2, base2, ori2 = dup_elem
                     new_G.add_edge(orig_id1, orig_id2, event='tandem_dup', direction='seq2_to_seq1')
-
-        elif op_type == 'inversion':
-            _, seq1_block, seq2_block, inv_len = op
-            for elem1, elem2 in zip(seq1_block, seq2_block[::-1]):
-                orig_id1, base1, ori1 = elem1
-                orig_id2, base2, ori2 = elem2
-                new_G.add_edge(orig_id1, orig_id2, event='inversion')
-
-        elif op_type == 'seg_dup_seq1':
-            _, seq1_blocks, seq2_block, block_len, num_copies = op
-            for seq1_block in seq1_blocks:
-                for elem1, elem2 in zip(seq1_block, seq2_block):
-                    orig_id1, base1, ori1 = elem1
-                    orig_id2, base2, ori2 = elem2
-                    new_G.add_edge(orig_id1, orig_id2, event='segmental_dup', direction='seq1')
-
-        elif op_type == 'seg_dup_seq2':
-            _, seq1_block, seq2_blocks, block_len, num_copies = op
-            for seq2_block in seq2_blocks:
-                for elem1, elem2 in zip(seq1_block, seq2_block):
-                    orig_id1, base1, ori1 = elem1
-                    orig_id2, base2, ori2 = elem2
-                    new_G.add_edge(orig_id1, orig_id2, event='segmental_dup', direction='seq2')
-
-        elif op_type == 'seg_dup_seq1_inverted':
-            _, seq1_blocks, seq2_block, block_len, num_copies = op
-            for seq1_block in seq1_blocks:
-                for elem1, elem2 in zip(seq1_block[::-1], seq2_block):
-                    orig_id1, base1, ori1 = elem1
-                    orig_id2, base2, ori2 = elem2
-                    new_G.add_edge(orig_id1, orig_id2, event='inverted_segmental_dup', direction='seq1')
-
-        elif op_type == 'seg_dup_seq2_inverted':
-            _, seq1_block, seq2_blocks, block_len, num_copies = op
-            for seq2_block in seq2_blocks:
-                for elem1, elem2 in zip(seq1_block, seq2_block[::-1]):
-                    orig_id1, base1, ori1 = elem1
-                    orig_id2, base2, ori2 = elem2
-                    new_G.add_edge(orig_id1, orig_id2, event='inverted_segmental_dup', direction='seq2')
 
         elif op_type in ['gap_seq1', 'gap_seq2']:
             # Gaps don't create edges - genes become singletons
@@ -1899,14 +1535,13 @@ if __name__ == '__main__':
     print("STEP 1: PARSE MCSCANX")
     print("="*80)
 
-    org_mapping, chr_mapping = get_mapping(args.mapping_file)
-
     chains_path = f"{OUTPUT_DIR}/parsed_mcscanx_chains"
     if not NO_CACHE and os.path.isfile(chains_path):
         print("Loading cached chains...")
         with open(chains_path, 'rb') as f:
             chains = pickle.load(f)
     else:
+        org_mapping, chr_mapping = get_mapping(args.mapping_file)
         print(f"Parsing {MCSCANX_FILE}...")
         chains = {}
         mini1 = 'NA'
@@ -1954,13 +1589,11 @@ if __name__ == '__main__':
                     continue
 
                 line = line.split()
-                first = line[-3]
-                second = line[-2]
-
                 start1 = int(line[-3].split('ele')[1].split('to')[0])
                 end1 = int(line[-3].split('ele')[1].split('to')[1])
                 start2 = int(line[-2].split('ele')[1].split('to')[0])
                 end2 = int(line[-2].split('ele')[1].split('to')[1])
+
                 elements1.append(start1)
                 elements2.append(start2)
 
@@ -2632,12 +2265,9 @@ if __name__ == '__main__':
                 for u, v, attrs in aln_info['edges']:
                     event = attrs.get('event', 'unknown')
                     direction = attrs.get('direction', '')
-                    match_type = attrs.get('match_type', '')
                     f.write(f"  {u} <-> {v} [event={event}")
                     if direction:
                         f.write(f", direction={direction}")
-                    if match_type:
-                        f.write(f", match_type={match_type}")
                     f.write("]\n")
 
                 f.write("\n")
