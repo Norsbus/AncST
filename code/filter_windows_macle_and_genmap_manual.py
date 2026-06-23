@@ -241,7 +241,7 @@ def _get_window_sums_at(kc, idx, l):
     return(out)
 
 
-def get_low_count_windows(org,genmap_out_file,out_file_name,k,e,len_window,interval,percentile,wanted_genome_size):
+def get_low_count_windows(org,genmap_out_file,out_file_name,k,e,len_window,interval,percentile,wanted_genome_size,abort_hard):
 
     l = int(len_window)
 
@@ -281,9 +281,17 @@ def get_low_count_windows(org,genmap_out_file,out_file_name,k,e,len_window,inter
     sums_global,indices_global = get_sums((0,len(kmer_counts),l,interval))
 
     how_many = int(wanted_genome_size/l)
+    if how_many <= 0:
+        if abort_hard:
+            raise RuntimeError(f"{org}: wanted_genome_size {wanted_genome_size} < window {l}, no windows fit this genmap param")
+        print(f"{org}: wanted_genome_size {wanted_genome_size} < window {l}, selecting no windows for this genmap param")
+        return set()
     if how_many >= len(sums_global):
-        raise RuntimeError(f"{org}: only {len(sums_global)} valid windows but need {how_many}. "
-            f"Percentile {percentile} may be too high or genome has too many N regions.")
+        if abort_hard:
+            raise RuntimeError(f"{org}: only {len(sums_global)} valid windows but need {how_many}. "
+                f"Percentile {percentile} may be too high or genome has too many N regions.")
+        print(f"{org}: only {len(sums_global)} valid windows but need {how_many}, selecting all of them")
+        return set(int(i) for i in indices_global)
     # np.partition + mask gives the same set as the old sorted(zip(...))[:how_many]
     # + ties loop: {idx : sum <= last}, last == how_many-th smallest sum. ties are
     # included by the <= comparison, same as "for xxx in lll[how_many:] if xxx[0]<=last".
@@ -1099,6 +1107,7 @@ if __name__ == "__main__":
     root = str(pathlib.Path(__file__).parents[1])
     anchor_dir = root + '/anchors'
     work_dir = argv[-1]
+    abort_hard = argv[-2] == 'True'
 
     genome_size = os.path.getsize(f'{work_dir}/../utils/genomes/{org}.fasta')
 
@@ -1126,17 +1135,27 @@ if __name__ == "__main__":
         len_lmers = int(paras[0]) 
         interval = int(paras[1]) 
         wanted_genome_size = int(int(paras[2])/100*genome_size)
+        if wanted_genome_size == 0:
+            if abort_hard:
+                raise RuntimeError(f"{org}: macle wanted_genome_size 0, macle param w={len_lmers}")
+            print(f"{org}: macle wanted_genome_size 0, skipping macle param w={len_lmers}")
+            continue
 
         Cm_values = get_Cm_values(len_lmers,interval)
         Cm_value = 1e6
         tot = 0
         iii = 0
         if wanted_genome_size > sum([xxx[1] for xxx in Cm_values[org]])*len_lmers:
-            raise RuntimeError(f"Percentile for macle may be too high.")
-        while tot < wanted_genome_size:
-            Cm_value = Cm_values[org][iii][0]
-            tot += Cm_values[org][iii][1]*len_lmers
-            iii+=1
+            if abort_hard:
+                raise RuntimeError(f"Percentile for macle may be too high.")
+            print(f"{org}: macle budget {wanted_genome_size} exceeds coverage, selecting all macle windows w={len_lmers}")
+            if Cm_values[org]:
+                Cm_value = Cm_values[org][-1][0]
+        else:
+            while tot < wanted_genome_size:
+                Cm_value = Cm_values[org][iii][0]
+                tot += Cm_values[org][iii][1]*len_lmers
+                iii+=1
 
         x = get_idx_from_macle(infile_macle,int(len_lmers),int(interval),percentile,Cm_value,wanted_genome_size)
         for iii in x:
@@ -1168,10 +1187,13 @@ if __name__ == "__main__":
         len_lmers = int(paras[2])
         interval = int(paras[3])
         wanted_genome_size = int(int(paras[4])/100*genome_size)
-        if wanted_genome_size == 0:
+        if wanted_genome_size < len_lmers:
+            if abort_hard:
+                raise RuntimeError(f"{org}: wanted_genome_size {wanted_genome_size} < window {len_lmers}, genmap param k={k} e={e}")
+            print(f"{org}: wanted_genome_size {wanted_genome_size} < window {len_lmers}, skipping genmap param k={k} e={e}")
             continue
         infile = f'{work_dir}/../utils/genmap_out/{org}/{k}_{e}.freq16'
-        x = get_low_count_windows(org,infile,outfile,k,e,len_lmers,interval,percentile,wanted_genome_size)
+        x = get_low_count_windows(org,infile,outfile,k,e,len_lmers,interval,percentile,wanted_genome_size,abort_hard)
         for iii in x:
             genmap_info[iii] = [len_lmers,interval]
         if int(paras[5]) == 0:

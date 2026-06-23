@@ -40,6 +40,11 @@ splitting:
 regions:
   min_anchor_size: 300   # Minimum candidate/anchor length (bp)
 
+# Strict mode. false (default): degenerate parameter+input cases are logged and handled
+# with a graceful assumption; true: they raise instead. Set by run_pipeline.sh --abort-hard.
+filtering:
+  abort_hard: false
+
 # Dups integration parameters (used when merging duplicated regions with candidates)
 dups_integration:
   overlap_threshold: 0.3   # Max overlap ratio before deleting candidate (30%)

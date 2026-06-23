@@ -105,6 +105,22 @@ to_rule_for_stage() {
         *)             return 1 ;;
     esac
 }
+# Return rc 0 if STAGE ($1) lies within the requested [FROM_STAGE, TO_STAGE] range.
+# Used to make pre-flight tool validation stage-aware (a downstream-only run does
+# not need genmap/macle/blast, etc.). Explicit if/return -- NOT a bare trailing
+# `(( ))` -- because under `set -e` a bare arithmetic command that evaluates to 0
+# returns rc 1 and could abort the script if this were ever called outside a
+# condition context. This form is safe in any context.
+stage_in_range() {
+    local s_idx from_idx to_idx
+    s_idx=$(stage_idx "$1") || return 1
+    from_idx=$(stage_idx "$FROM_STAGE")
+    to_idx=$(stage_idx "$TO_STAGE")
+    if (( s_idx >= from_idx && s_idx <= to_idx )); then
+        return 0
+    fi
+    return 1
+}
 # Did the user explicitly pass --from-target or --target-from-to ? Used to
 # detect "both flags together" error.
 FROM_TARGET_SET=false
@@ -119,6 +135,7 @@ SNAKEMAKE_EXTRA_FLAGS=""  # Additional flags passed directly to snakemake comman
 LOW_MEM=false         # Whether to use reduced memory multipliers for rules
 HIGH_MEM=false        # Whether to use 2x memory multipliers for rules
 AUTO_FIX_CORRUPT=false  # Whether to auto-remove corrupt utils/ files (requires --auto-fix-corrupt)
+ABORT_HARD=false  # Whether the filter raises on degenerate genmap/macle budgets instead of degrading (--abort-hard)
 
 # Color output
 RED='\033[0;31m'
@@ -262,6 +279,12 @@ Optional:
                              Without this flag, corrupt files are reported and the
                              pipeline exits with an error (safe default).
                              Use this when you want automatic cleanup after interrupted runs.
+  --abort-hard               Strict mode. At several points the pipeline makes a
+                             reasonable assumption to keep going when a parameter
+                             setting and the input combine into a degenerate case;
+                             by default it logs and continues. With this flag those
+                             cases raise instead. Use it when you don't fully trust
+                             your data/parameters.
 
   Directories:
   --work-dir DIR             Work directory (default: template/)
@@ -459,6 +482,10 @@ while [[ $# -gt 0 ]]; do
             AUTO_FIX_CORRUPT=true
             shift
             ;;
+        --abort-hard)
+            ABORT_HARD=true
+            shift
+            ;;
         --work-dir)
             WORK_DIR="$(cd "$2" 2>/dev/null && pwd)" || error_exit "--work-dir not accessible: $2"
             shift 2
@@ -533,20 +560,70 @@ check_tool() {
 # Track validation failures
 VALIDATION_FAILED=false
 
-# Core Python packages
+# Determine which param families will be available, from the parsed flags alone
+# (manual params file given, OR not skipped -> auto-generated). Single source of
+# truth: these booleans gate BOTH the stage-aware tool validation below AND the
+# "at least one of genmap or macle" check further down. They depend only on CLI
+# flags, so computing them here (before validation) is safe.
+GENMAP_AVAILABLE=false
+if [[ -n "$GENMAP_PARAMS_FILE" ]] || [[ "$SKIP_GENMAP" != "true" ]]; then
+    GENMAP_AVAILABLE=true
+fi
+MACLE_AVAILABLE=false
+if [[ -n "$MACLE_PARAMS_FILE" ]] || [[ "$SKIP_MACLE" != "true" ]]; then
+    MACLE_AVAILABLE=true
+fi
+# dups also drives the genmap binary (dups_params -> genmap freq16 outputs), so it
+# must be considered when deciding whether genmap needs validating.
+DUPS_AVAILABLE=false
+if [[ -n "$DUPS_PARAMS_FILE" ]] || [[ "$SKIP_DUPS" != "true" ]]; then
+    DUPS_AVAILABLE=true
+fi
+
+# Core Python packages -- needed by every stage, including downstream.
 check_tool "Python" "python --version" || VALIDATION_FAILED=true
 check_tool "NumPy" "python -c 'import numpy'" || VALIDATION_FAILED=true
 check_tool "BioPython" "python -c 'import Bio'" || VALIDATION_FAILED=true
+check_tool "PyYAML" "python -c 'import yaml'" || VALIDATION_FAILED=true
 check_tool "Snakemake" "snakemake --version" || VALIDATION_FAILED=true
 
-# Bioinformatics tools
-check_tool "BLAST" "blastn -version" || VALIDATION_FAILED=true
-check_tool "datasets (NCBI)" "datasets --version" || VALIDATION_FAILED=true
-check_tool "genmap" "genmap --version" || VALIDATION_FAILED=true
+# Bioinformatics tools -- validated ONLY for the stages that actually invoke them,
+# so e.g. a downstream-only or validation-only run (which use neither) is not blocked
+# by a missing genmap/macle/blast. Stage->binary map verified against the rule files.
 
-# Compiled tools (installed in conda environment)
-check_tool "macle" "macle --help" || VALIDATION_FAILED=true
-check_tool "clasp.x" "( clasp.x 2>&1 || true ) | grep -qi 'usage\|clasp'" || VALIDATION_FAILED=true
+# datasets: only used to download NCBI genomes during preprocessing. Resume runs
+# (--from-target > preprocessing) require pre-existing genomes, so it isn't needed.
+if stage_in_range preprocessing; then
+    check_tool "datasets (NCBI)" "datasets --version" || VALIDATION_FAILED=true
+fi
+
+# genmap/macle build indices in preprocessing, but only run when their params exist,
+# which requires the anchors (filter) stage to be in range AND the family enabled.
+# genmap is additionally driven by dups params (dups_params -> genmap freq16 outputs).
+if stage_in_range preprocessing && stage_in_range anchors; then
+    if [[ "$GENMAP_AVAILABLE" == "true" || "$DUPS_AVAILABLE" == "true" ]]; then
+        check_tool "genmap" "genmap --version" || VALIDATION_FAILED=true
+    fi
+    if [[ "$MACLE_AVAILABLE" == "true" ]]; then
+        # Robust check: macle's help flag is -h (--help is undefined and returns
+        # non-zero on some builds); grep the output and ignore the exit code, like
+        # the clasp.x check below. Catches a missing/broken binary, build-portable.
+        check_tool "macle" "( macle -h 2>&1 || true ) | grep -qi 'macle\|usage'" || VALIDATION_FAILED=true
+    fi
+fi
+
+# makeblastdb: genome BLASTdbs in preprocessing (unconditional for ALL_ORGS) and
+# candidate BLASTdbs in the pairwise stage.
+if stage_in_range preprocessing || stage_in_range pairwise; then
+    check_tool "makeblastdb" "makeblastdb -version" || VALIDATION_FAILED=true
+fi
+
+# blastn/clasp.x/fasta-splitter: used by self-blast (anchors) and pairwise matching.
+if stage_in_range anchors || stage_in_range pairwise; then
+    check_tool "BLAST" "blastn -version" || VALIDATION_FAILED=true
+    check_tool "clasp.x" "( clasp.x 2>&1 || true ) | grep -qi 'usage\|clasp'" || VALIDATION_FAILED=true
+    check_tool "fasta-splitter" "( fasta-splitter --help 2>&1 || true ) | grep -qi 'usage\|fasta'" || VALIDATION_FAILED=true
+fi
 
 if [[ "$VALIDATION_FAILED" == "true" ]]; then
     log_error "Some tools are missing or not working"
@@ -570,21 +647,8 @@ if [[ ! -f "$SPECIES_FILE" ]]; then
 fi
 
 # Validate parameter configuration
-# Determine if genmap will be available
-GENMAP_AVAILABLE=false
-if [[ -n "$GENMAP_PARAMS_FILE" ]]; then
-    GENMAP_AVAILABLE=true
-elif [[ "$SKIP_GENMAP" != "true" ]]; then
-    GENMAP_AVAILABLE=true  # Will auto-generate
-fi
-
-# Determine if macle will be available
-MACLE_AVAILABLE=false
-if [[ -n "$MACLE_PARAMS_FILE" ]]; then
-    MACLE_AVAILABLE=true
-elif [[ "$SKIP_MACLE" != "true" ]]; then
-    MACLE_AVAILABLE=true  # Will auto-generate
-fi
+# GENMAP_AVAILABLE / MACLE_AVAILABLE / DUPS_AVAILABLE are computed once above
+# (before tool validation), from the parsed flags. Reuse them here.
 
 # At least one of genmap or macle must be available
 if [[ "$GENMAP_AVAILABLE" != "true" ]] && [[ "$MACLE_AVAILABLE" != "true" ]]; then
@@ -1102,6 +1166,7 @@ setup_parameters() {
     # config lives in the work dir; write the runtime cores/mem/timeout into it
     PIPELINE_CONFIG_DEST="${WORK_DIR}/pipeline_config.yaml"
     sed -i.bak "s/^  cores:.*/  cores: $CORES/" "$PIPELINE_CONFIG_DEST"
+    sed -i.bak "s/^  abort_hard:.*/  abort_hard: $ABORT_HARD/" "$PIPELINE_CONFIG_DEST"
 
     # Per-process limits for blast/clasp are OPT-IN (off by default). RLIMIT_AS caps VIRTUAL
     # address space, which blast's mmap'd DB + glibc thread arenas blow through on many-core
@@ -1399,32 +1464,32 @@ setup_existing_anchor_touch_files() {
     fi
 }
 
-# Step 6c: Fabricate "stage X done" touch files for stages BEFORE FROM_STAGE,
-# so snakemake's DAG sees those stages as completed and short-circuits them.
-# Parametric on FROM_STAGE.
+# Step 6c (part 1 of 2): READ-ONLY validation of --from-target prerequisites.
+# Split out of the old setup_touch_files_for_from_stage so it can run BEFORE the
+# destructive directory clean (setup_all_directories). Previously the
+# --continue-run guard and the prerequisite check lived together with the touch
+# fabrication and ran AFTER the clean -- so a `--from-target validation|downstream`
+# WITHOUT --continue-run would wipe template/ intermediates (touch/, parse_bcamm/,
+# sequences_to_compare/) and only THEN report "requires --continue-run", destroying
+# the very state the guard exists to protect. This function performs NO writes
+# (no mkdir, no touch); see fabricate_touch_files_for_from_stage for the writes.
 #
 # Cases by FROM:
-#   preprocessing | anchors  -> nothing to do (utils/ has preprocessing outputs;
-#                               anchors_only rule's input is update_candidates_done
-#                               which IT creates).
-#   pairwise                 -> need update_candidates_done_{org} per ALL_ORGS;
-#                               anchors files must exist on disk.
+#   preprocessing | anchors  -> nothing to validate (anchors_only rule creates its
+#                               own update_candidates_done inputs).
+#   pairwise                 -> anchors candidates/aligned must exist per ALL_ORGS.
 #   validation | downstream  -> REQUIRES --continue-run because the pairwise stage
-#                               produces intermediate files in template/ (parse_bcamm/,
-#                               sequences_to_compare/, pair_done_* touch files, etc.)
-#                               that we cannot fabricate without parsing the Snakefile's
-#                               per-pair logic. --continue-run preserves template/.
-#                               Defensively fabricates any missing touch files with
-#                               mtime matching anchors/aligned/{org} (via touch -r)
-#                               to avoid spurious mtime-cascade.
-setup_touch_files_for_from_stage() {
-    local from_idx pairwise_idx validation_idx downstream_idx
+#                               produces template/ intermediates (parse_bcamm/,
+#                               sequences_to_compare/, pair_done_*) we cannot
+#                               fabricate; --continue-run preserves them. Also
+#                               requires aligned_succinct/{org} to exist.
+validate_from_stage_prerequisites() {
+    local from_idx pairwise_idx validation_idx
     from_idx=$(stage_idx "$FROM_STAGE")
     pairwise_idx=$(stage_idx "pairwise")
     validation_idx=$(stage_idx "validation")
-    downstream_idx=$(stage_idx "downstream")
 
-    # Nothing to do for FROM=preprocessing or FROM=anchors
+    # Nothing to validate for FROM=preprocessing or FROM=anchors
     if (( from_idx < pairwise_idx )); then
         return 0
     fi
@@ -1433,7 +1498,8 @@ setup_touch_files_for_from_stage() {
     # per-pair intermediate state from a prior pairwise run are preserved.
     # Without --continue-run, setup_directories.py would clean template/ and
     # pair_done_* / parse_bcamm/ / sequences_to_compare/ would be gone -> snakemake
-    # would cascade back into the pairwise chain.
+    # would cascade back into the pairwise chain. This check MUST run before the
+    # clean (it does now: called pre-setup_all_directories in main()).
     if (( from_idx >= validation_idx )) && [[ "$CONTINUE_RUN" != "true" ]]; then
         log_error "--from-target $FROM_STAGE requires --continue-run"
         log_error "  Skipping the pairwise stage means snakemake must see prior pair_done_*"
@@ -1444,21 +1510,20 @@ setup_touch_files_for_from_stage() {
         exit 1
     fi
 
-    log_phase "STEP 6c: Fabricating touch files for stages before FROM=$FROM_STAGE"
-
-    local touch_dir="${WORK_DIR}/touch"
-    mkdir -p "$touch_dir"
+    log_phase "STEP 6c (validate): Checking --from-target prerequisites for FROM=$FROM_STAGE"
 
     if [[ ! -f "${WORK_DIR}/orgs" ]]; then
         error_exit "orgs not found at ${WORK_DIR}/orgs"
     fi
 
-    # Build the list of touch files to fabricate per org (depends on FROM)
+    # aligned_succinct/{org} is only a prerequisite for FROM >= validation.
     local need_aligned_succinct_file=false
     if (( from_idx >= validation_idx )); then
         need_aligned_succinct_file=true
     fi
 
+    # Per-org existence check on anchor outputs. These live OUTSIDE the work dir
+    # (in ${PROJECT_ROOT}/anchors), so reading them before the clean is safe.
     local orgs_ok=0 orgs_missing=0
     while IFS= read -r org || [[ -n "$org" ]]; do
         [[ -z "$org" || "$org" =~ ^# ]] && continue
@@ -1480,6 +1545,57 @@ setup_touch_files_for_from_stage() {
             ((orgs_missing++)) || true
             continue
         fi
+        ((orgs_ok++)) || true
+    done < "${WORK_DIR}/orgs"
+
+    if (( orgs_missing > 0 )); then
+        log_error "Cannot run with --from-target $FROM_STAGE: $orgs_missing organism(s) missing prerequisite files"
+        log_error "Run earlier stages first, or provide the missing files"
+        exit 1
+    fi
+
+    log_success "Prerequisite state verified for $orgs_ok organisms (FROM=$FROM_STAGE)"
+    if (( from_idx >= validation_idx )); then
+        log_info "  (assumes prior pairwise run left pair_done_* / parse_bcamm/ / sequences_to_compare/ intact in template/)"
+    fi
+}
+
+# Step 6c (part 2 of 2): WRITE the fabricated "stage X done" touch files so
+# snakemake's DAG sees stages before FROM_STAGE as completed and short-circuits
+# them. Runs AFTER the directory clean, because touch/ lives in the work dir and
+# is wiped/recreated by the clean -- fabricating earlier would just be deleted.
+# Prerequisites are already verified by validate_from_stage_prerequisites (called
+# pre-clean), so this assumes the anchor files exist; it fabricates touch files
+# with mtime matching anchors/aligned/{org} (via touch -r) to avoid a spurious
+# mtime-cascade, and never clobbers an existing touch file.
+fabricate_touch_files_for_from_stage() {
+    local from_idx pairwise_idx validation_idx downstream_idx
+    from_idx=$(stage_idx "$FROM_STAGE")
+    pairwise_idx=$(stage_idx "pairwise")
+    validation_idx=$(stage_idx "validation")
+    downstream_idx=$(stage_idx "downstream")
+
+    # Nothing to do for FROM=preprocessing or FROM=anchors
+    if (( from_idx < pairwise_idx )); then
+        return 0
+    fi
+
+    log_phase "STEP 6c (fabricate): Writing touch files for stages before FROM=$FROM_STAGE"
+
+    local touch_dir="${WORK_DIR}/touch"
+    mkdir -p "$touch_dir"
+
+    if [[ ! -f "${WORK_DIR}/orgs" ]]; then
+        error_exit "orgs not found at ${WORK_DIR}/orgs"
+    fi
+
+    while IFS= read -r org || [[ -n "$org" ]]; do
+        [[ -z "$org" || "$org" =~ ^# ]] && continue
+
+        local aligned_file="${PROJECT_ROOT}/anchors/aligned/${org}"
+        # Defensive: prerequisites were validated pre-clean; skip silently if the
+        # anchor file is somehow absent (validation owns the error reporting).
+        [[ -f "$aligned_file" ]] || continue
 
         # Build the list of touch files this FROM needs (per-org)
         local touch_basenames=()
@@ -1513,19 +1629,7 @@ setup_touch_files_for_from_stage() {
         if (( n_fabricated > 0 )); then
             log_info "  $org: fabricated $n_fabricated missing touch file(s) (mtime via touch -r aligned)"
         fi
-        ((orgs_ok++)) || true
     done < "${WORK_DIR}/orgs"
-
-    if (( orgs_missing > 0 )); then
-        log_error "Cannot run with --from-target $FROM_STAGE: $orgs_missing organism(s) missing prerequisite files"
-        log_error "Run earlier stages first, or provide the missing files"
-        exit 1
-    fi
-
-    log_success "Prerequisite state verified for $orgs_ok organisms (FROM=$FROM_STAGE)"
-    if (( from_idx >= validation_idx )); then
-        log_info "  (assumes prior pairwise run left pair_done_* / parse_bcamm/ / sequences_to_compare/ intact in template/)"
-    fi
 }
 
 # Step 7: Run Snakemake pipeline
@@ -1888,13 +1992,18 @@ main() {
     validate_work_dir             # work dir must have the required files (fail loud)
     validate_and_process_species  # Validates species file, downloads NCBI genomes, creates orgs file
     validate_genomes              # Normalizes extensions (.fna/.fa/.faa -> .fasta) and validates FASTA format
-    setup_all_directories         # MUST run first - cleans template/ (would delete files created after)
+    validate_from_stage_prerequisites  # READ-ONLY: --from-target guard + anchor prereq check. MUST run
+                                       # before the clean so a missing --continue-run errors BEFORE
+                                       # template/ intermediates are wiped (see function header).
+    setup_all_directories         # Destructive clean of template/ (skipped under --continue-run).
+                                  # Kept after all read-only checks that can fail.
     skip_params_if_filter_not_in_range  # Skip param generation when anchors stage not in [FROM,TO]
     setup_compute_anchors         # Now safe - directory cleanup already done
     setup_parameters
     setup_pairwise_comparisons    # Setup custom pairwise comparisons if provided
     setup_existing_anchor_touch_files  # Create touch files for pre-existing anchors (incremental mode)
-    setup_touch_files_for_from_stage   # Fabricate touch files for stages before FROM_STAGE
+    fabricate_touch_files_for_from_stage  # WRITE touch files for stages before FROM_STAGE (post-clean:
+                                          # touch/ is wiped by the clean, so fabricate after it)
     run_pipeline
     report_results
 

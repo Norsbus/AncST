@@ -38,6 +38,9 @@ PIPELINE_CONFIG = load_pipeline_config()
 SELF_BLAST_PART_SIZE = PIPELINE_CONFIG.get('splitting', {}).get('self_blast_part_size', 100000)
 PAIRWISE_PART_SIZE = PIPELINE_CONFIG.get('splitting', {}).get('pairwise_part_size', 10000000)
 
+# Strict mode: raise on degenerate parameter+input cases instead of degrading gracefully
+ABORT_HARD = PIPELINE_CONFIG.get('filtering', {}).get('abort_hard', False)
+
 # Directories from config
 CODE_DIR = config['code_dir']
 WORK_DIR = config['work_dir']

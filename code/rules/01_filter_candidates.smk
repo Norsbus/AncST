@@ -47,6 +47,7 @@ rule filter_windows:
             {{output.indices}} \
             {{threads}} \
             {{params.k}} {{params.e}} {{params.L}} {{params.I}} {{params.P}} \
+            {ABORT_HARD} \
             {WORK_DIR} \
             > {{log.out}} 2> {{log.err}}"""
 
