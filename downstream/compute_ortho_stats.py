@@ -53,7 +53,7 @@ def main():
         print(f"ERROR: {union_file} not found")
         sys.exit(1)
     with open(union_file, 'rb') as f:
-        _, gspe = pickle.load(f)
+        _, gspe, _ = pickle.load(f)
     print(f"Loaded gene_species: {len(gspe)} genes")
     thresh = 50
     mgraph = nx.Graph()
@@ -139,12 +139,12 @@ def main():
     print(f"  {after_aln} edges remain after alignment")
     print("\nMarking edges after union cograph...")
     with open(f'{outd}/final_union_graph_with_new_edges.pickle', 'rb') as f:
-        union_v1, _ = pickle.load(f)
+        union_v1, _, _ = pickle.load(f)
     for u, v in union_v1.edges():
         if mgraph.has_edge(u, v):
             mgraph.edges[u, v]['after_union_with_new_edges'] = True
     with open(f'{outd}/final_union_graph_no_new_edges.pickle', 'rb') as f:
-        union_v2, _ = pickle.load(f)
+        union_v2, _, _ = pickle.load(f)
     for u, v in union_v2.edges():
         if mgraph.has_edge(u, v):
             mgraph.edges[u, v]['after_union_no_new_edges'] = True
