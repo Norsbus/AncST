@@ -694,44 +694,33 @@ if __name__ == "__main__":
             f.write(f'==============================================================================================================\n')
     with open(f'syntenic_regions_succinct','w') as f:
         for org,bib in global_regions.items():
+            seqids,seqlen = small_meta[org]
+            # a region may span >2 contigs - write every contig it covers (don't drop the
+            # middle ones); collect per contig so the region_buffer-overlapping ones can be merged
+            per_chromo = {}
             for ident,t in sorted(bib.items(), key=lambda x: x[1]):
                 start,end = t
-                seqids,seqlen = small_meta[org]
-                chromo = which_chromo(seqlen,seqids,start)
-                chromo_end = which_chromo(seqlen,seqids,end)
-                if chromo_end != chromo:
-                    seqlen_chr_start = seqlen[seqids.index(chromo)]
-                    save_end = end
-                    end = seqlen_chr_start - 1
-                idx_l = seqids.index(chromo)
-                if idx_l > 0:
-                    le = seqlen[idx_l-1]
-                else:
-                    le = 0
-                len_chr = seqlen[idx_l] - le
-                start -= le
-                start -= region_buffer
-                start = max(0,start)
-                end -= le
-                end += region_buffer
-                end = min(len_chr,end)
-                if chromo_end != chromo:
-                    start1 = start
-                    end1 = len_chr - 1
-                    f.write(f'{org}\t{chromo}\t{start1}\t{end1}\tPOT BP1\n')
-                    start2 = 0
-                    idx_l = seqids.index(chromo_end)
-                    if idx_l > 0:
-                        le = seqlen[idx_l-1]
-                    else:
-                        le = 0
+                idx0 = seqids.index(which_chromo(seqlen,seqids,start))
+                idx1 = seqids.index(which_chromo(seqlen,seqids,end))
+                for idx_l in range(idx0,idx1+1):
+                    le = seqlen[idx_l-1] if idx_l > 0 else 0
                     len_chr = seqlen[idx_l] - le
-                    end2 = save_end - le
-                    end2 += region_buffer
-                    end2 = min(len_chr,end2)
-                    f.write(f'{org}\t{chromo_end}\t{start2}\t{end2}\tPOT BP2\n')
-                else:
-                    f.write(f'{org}\t{chromo}\t{start}\t{end}\tNO BP\n')
+                    s = max(0,(start-le)-region_buffer) if idx_l == idx0 else 0
+                    e = min(len_chr,(end-le)+region_buffer) if idx_l == idx1 else len_chr-1
+                    label = 'NO BP' if idx0 == idx1 else 'POT BP'
+                    per_chromo.setdefault(seqids[idx_l],[]).append([s,e,label])
+            for chromo,ivs in per_chromo.items():
+                ivs.sort()
+                merged = [ivs[0]]
+                for s,e,label in ivs[1:]:
+                    if s <= merged[-1][1]:
+                        merged[-1][1] = max(merged[-1][1],e)
+                        if label == 'POT BP':
+                            merged[-1][2] = 'POT BP'
+                    else:
+                        merged.append([s,e,label])
+                for s,e,label in merged:
+                    f.write(f'{org}\t{chromo}\t{s}\t{e}\t{label}\n')
 
     if args.include_seed_regions:
         seed_margin = args.seed_region_margin if args.seed_region_margin is not None else region_buffer

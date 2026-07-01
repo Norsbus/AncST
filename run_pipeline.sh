@@ -1239,11 +1239,42 @@ validate_utils_integrity() {
     # Collect blastdb base paths separately (need wildcard removal)
     local corrupt_blastdb_bases=()
 
+    # Scope integrity checks to THIS job's orgs (from ORGS_FILE). The shared
+    # utils/ cache holds preprocessing files for many orgs across slots/jobs; a
+    # job must only be blocked by (and only auto-fix) corruption in genomes it
+    # actually uses - mirrors validate_genomes. Each cache path keys by exact
+    # org name: macle_indices/<org>, macle_out/<org>/, genmap_out/<org>/,
+    # genmap_indices/<org>/, blastdbs/<org>.nsq, {metadata_genomes,small_meta}/<org>.
+    # Auto-fixing own-org files is safe: the orchestrator's _claim_orgs reserves
+    # a job's whole org set for its slot, so no other running slot holds these
+    # orgs (nothing else is writing them). See computational_server_loop.py.
+    if [[ ! -f "$ORGS_FILE" ]]; then
+        error_exit "Orgs file not found (expected from validate_and_process_species): $ORGS_FILE"
+    fi
+    # Newline-delimited, sentinel-wrapped list of this job's orgs + a membership
+    # helper. Plain string + helper (NOT `declare -A`) to stay bash-3.2 compatible
+    # per the note at the top of this file. The name is quoted in the pattern so
+    # it matches literally (org names contain '.'), and the wrapping newlines stop
+    # prefix false-matches (e.g. "GCA_1" vs "GCA_12").
+    local _job_orgs_nl=$'\n'
+    local _org_line
+    while IFS= read -r _org_line || [[ -n "$_org_line" ]]; do
+        [[ "$_org_line" =~ ^[[:space:]]*# ]] && continue
+        _org_line=$(echo "$_org_line" | tr -d '[:space:]')
+        [[ -z "$_org_line" ]] && continue
+        _job_orgs_nl+="${_org_line}"$'\n'
+    done < "$ORGS_FILE"
+    if [[ "$_job_orgs_nl" == $'\n' ]]; then
+        error_exit "No orgs to validate integrity for (orgs file empty?): $ORGS_FILE"
+    fi
+    _is_job_org() { [[ "$_job_orgs_nl" == *$'\n'"$1"$'\n'* ]]; }
+
     # --- Check macle indices for 0-byte files ---
     if [[ -d "${utils_dir}/macle_indices" ]]; then
         for f in "${utils_dir}/macle_indices/"*; do
             [[ -e "$f" ]] || continue  # skip if glob matched nothing
             [[ -d "$f" ]] && continue  # skip directories
+            _is_job_org "$(basename "$f")" || continue  # scope: this job's orgs only
             if [[ ! -s "$f" ]]; then
                 log_warning "Corrupt macle index (0 bytes): $(basename "$f")"
                 corrupt_files+=("$f")
@@ -1256,6 +1287,7 @@ validate_utils_integrity() {
     if [[ -d "${utils_dir}/macle_out" ]]; then
         for org_dir in "${utils_dir}/macle_out/"*/; do
             [[ -d "$org_dir" ]] || continue
+            _is_job_org "$(basename "$org_dir")" || continue  # scope: this job's orgs only
             for f in "${org_dir}"*.txt; do
                 [[ -e "$f" ]] || continue
                 if [[ ! -s "$f" ]]; then
@@ -1271,6 +1303,7 @@ validate_utils_integrity() {
     if [[ -d "${utils_dir}/genmap_out" ]]; then
         for org_dir in "${utils_dir}/genmap_out/"*/; do
             [[ -d "$org_dir" ]] || continue
+            _is_job_org "$(basename "$org_dir")" || continue  # scope: this job's orgs only
             for f in "${org_dir}"*.freq16; do
                 [[ -e "$f" ]] || continue
                 if [[ ! -s "$f" ]]; then
@@ -1291,6 +1324,7 @@ validate_utils_integrity() {
             [[ -d "$org_dir" ]] || continue
             local org_name
             org_name=$(basename "$org_dir")
+            _is_job_org "$org_name" || continue  # scope: this job's orgs only
             for req_file in "${required_files[@]}"; do
                 if [[ ! -s "${org_dir}${req_file}" ]]; then
                     log_warning "Incomplete genmap index for ${org_name} (missing/empty ${req_file})"
@@ -1306,6 +1340,7 @@ validate_utils_integrity() {
     if [[ -d "${utils_dir}/blastdbs" ]]; then
         for f in "${utils_dir}/blastdbs/"*.nsq; do
             [[ -e "$f" ]] || continue
+            _is_job_org "$(basename "${f%.nsq}")" || continue  # scope: this job's orgs only
             if [[ ! -s "$f" ]]; then
                 local db_base="${f%.nsq}"
                 log_warning "Corrupt blastdb (0-byte .nsq): $(basename "$db_base")"
@@ -1321,6 +1356,7 @@ validate_utils_integrity() {
             for f in "${utils_dir}/${meta_dir}/"*; do
                 [[ -e "$f" ]] || continue
                 [[ -d "$f" ]] && continue
+                _is_job_org "$(basename "$f")" || continue  # scope: this job's orgs only
                 if [[ ! -s "$f" ]]; then
                     log_warning "Corrupt ${meta_dir} file (0 bytes): $(basename "$f")"
                     corrupt_files+=("$f")
@@ -1333,16 +1369,25 @@ validate_utils_integrity() {
     # --- Act on findings ---
     if [[ $corrupt_count -gt 0 ]]; then
         if [[ "$AUTO_FIX_CORRUPT" == "true" ]]; then
-            # Remove corrupt files
-            for f in "${corrupt_files[@]}"; do
-                rm -f "$f"
-            done
-            for d in "${corrupt_dirs[@]}"; do
-                rm -rf "$d"
-            done
-            for base in "${corrupt_blastdb_bases[@]}"; do
-                rm -f "${base}".n*
-            done
+            # Remove corrupt files. Guard each loop on array size so an empty
+            # array does not trip `set -u` on bash 3.2 (on bash 4.4 empty
+            # "${arr[@]}" is already safe); the (( )) is a conditional so its
+            # zero result does not trip `set -e` either.
+            if (( ${#corrupt_files[@]} )); then
+                for f in "${corrupt_files[@]}"; do
+                    rm -f "$f"
+                done
+            fi
+            if (( ${#corrupt_dirs[@]} )); then
+                for d in "${corrupt_dirs[@]}"; do
+                    rm -rf "$d"
+                done
+            fi
+            if (( ${#corrupt_blastdb_bases[@]} )); then
+                for base in "${corrupt_blastdb_bases[@]}"; do
+                    rm -f "${base}".n*
+                done
+            fi
             log_warning "Removed ${corrupt_count} corrupt/incomplete file(s) from utils/"
             log_info "Snakemake will regenerate them automatically"
         else
